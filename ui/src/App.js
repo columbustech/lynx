@@ -151,18 +151,18 @@ class App extends React.Component {
       response => {
         var elapsedSecs = Math.floor((Date.now()-this.state.fnStart)/1000);
         this.setState({
-          fnStatus: response.data.fnStatus,
-          fnMessage: response.data.fnMessage,
+          fnStatus: response.data.stage,
+          fnMessage: response.data.long_status,
           fnElapsed: `${Math.floor(elapsedSecs/60)}m ${elapsedSecs % 60}s`
         });
-        if (response.data.logsAvailable === "Y") {
+        if (response.data.logsAvailable === true) {
           this.setState({logsAvailable:true});
         }
-        if(response.data.fnStatus === "Running") {
-          setTimeout(() => this.fnStatusPoll(), 1000);
+        if(response.data.status === "Running") {
+          setTimeout(() => this.pollStatus(), 1000);
         }
       }, err => {
-        setTimeout(() => this.fnStatusPoll(), 1000);
+        setTimeout(() => this.pollStatus(), 1000);
       }
     );
   }
@@ -330,7 +330,7 @@ class App extends React.Component {
                 <span className="m-3">Input Chunks:</span>
               </td>
               <td>
-                <input type="text" value={this.state.featurizerChunks} className="p-1 m-3 number-input" onChange={e => this.setState({featurizeChunks: e.target.value})} />
+                <input type="text" value={this.state.featurizerChunks} className="p-1 m-3 number-input" onChange={e => this.setState({featurizerChunks: e.target.value})} />
               </td>
             </tr>
             <tr>

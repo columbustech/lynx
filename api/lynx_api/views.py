@@ -55,7 +55,7 @@ class ExecuteWorkflow(APIView):
         sm_job = SMJob(uid=uid, stage="Profiling", status="Running", long_status="Initializing")
         sm_job.save()
 
-        t = threading.Thread(target=execute_workflow, args=(auth_header, request.data))
+        t = threading.Thread(target=execute_workflow, args=(uid, auth_header, request.data))
         t.start()
 
         return Response({'uid':uid}, status=status.HTTP_200_OK)
