@@ -10,6 +10,9 @@ class App extends React.Component {
     this.state = {
       specs: {},
       isLoggedIn: false,
+      inputMode: "ui",
+      configFilePath: "",
+      configFilePathSelector: false,
       inputDir: "",
       inputDirSelector: false,
       outputDir: "",
@@ -22,6 +25,11 @@ class App extends React.Component {
       featurizerUrl: "",
       featurizerReplicas: "",
       featurizerChunks: "",
+      seedPath: "",
+      iterations: "",
+      batchSize: "",
+      nEstimators: "",
+      minTestSize: "",
       driveObjects: [],
       uid: "",
       fnStatus: "",
@@ -38,6 +46,7 @@ class App extends React.Component {
     this.startProcessing = this.startProcessing.bind(this);
     this.stopProcessing = this.stopProcessing.bind(this);
     this.pollStatus = this.pollStatus.bind(this);
+    this.importConfig = this.importConfig.bind(this);
   }
   getSpecs() {
     const request = axios({
@@ -125,7 +134,12 @@ class App extends React.Component {
         blockerChunks: this.state.blockerChunks,
         featurizerUrl: this.state.featurizerUrl,
         featurizerReplicas: this.state.featurizerReplicas,
-        featurizerChunks: this.state.featurizerChunks
+        featurizerChunks: this.state.featurizerChunks,
+        seedPath: this.state.seedPath,
+        iterations: this.state.iterations,
+        batchSize: this.state.batchSize,
+        nEstimators: this.state.nEstimators,
+        minTestSize: this.state.minTestSize
       },
       headers: {
         'Authorization': `Bearer ${cookies.get('lynx_token')}`,
@@ -163,6 +177,36 @@ class App extends React.Component {
         }
       }, err => {
         setTimeout(() => this.pollStatus(), 1000);
+      }
+    );
+  }
+  importConfig(path) {
+    const cookies = new Cookies();
+    const request = axios({
+      method: 'GET',
+      url: `${this.state.specs.cdriveApiUrl}download?path=${path}`,
+      headers: {
+        'Authorization': `Bearer ${cookies.get('lynx_token')}`,
+      }
+    });
+    request.then(
+      response => {
+        const req = axios({
+          method: 'GET',
+          url: response.data.download_url
+        });
+        req.then(
+          res => {
+            var newState = {
+              configFilePath: path,
+              ...res.data
+            };
+            this.setState(newState);
+          },
+          err => {
+          }
+        );
+      }, err => {
       }
     );
   }
@@ -241,6 +285,52 @@ class App extends React.Component {
           </div>
         );
       }
+      let inputModeRow, configFileName;
+      configFileName = getName(this.state.configFilePath);
+      if(this.state.inputMode === "ui") {
+        inputModeRow = (
+          <tr>
+            <td>
+              <span className="m-3">Input Mode:</span>
+            </td>
+            <td>
+              <div className="btn-group m-3" role="group">
+                <button className="btn btn-primary">User Interface</button>
+                <button className="btn btn-light" onClick={()=>this.setState({inputMode:"json"})}>Import</button>
+              </div>
+            </td>
+            <td />
+            <td />
+            <td />
+            <td />
+          </tr>
+        );
+      } else if (this.state.inputMode === "json"){
+        inputModeRow = (
+          <tr>
+            <td>
+              <span className="m-3">Input Mode:</span>
+            </td>
+            <td>
+              <div className="btn-group m-3" role="group">
+                <button className="btn btn-light" onClick={()=>this.setState({inputMode:"ui"})}>User Interface</button>
+                <button className="btn btn-primary">Import</button>
+              </div>
+            </td>
+            <td>
+              <span className="m-3">Config File:</span>
+            </td>
+            <td>
+              <button className="btn btn-secondary m-3" onClick={() => this.setState({configFilePathSelector : true})} >
+                Browse
+              </button>
+              <span className="m-3">{configFileName}</span>
+            </td>
+            <td />
+            <td />
+          </tr>
+        )
+      }
       return(
         <div className="app-container">
           <div className="app-header">
@@ -252,7 +342,11 @@ class App extends React.Component {
           <CDrivePathSelector show={this.state.outputDirSelector} toggle={() => this.setState({outputDirSelector : false})}
           action={path => this.setState({outputDir: path})} title="Select Output Folder"  actionName="Select this folder"
           driveObjects={this.state.driveObjects} type="folder" />
+          <CDrivePathSelector show={this.state.configFilePathSelector} toggle={() => this.setState({configFilePathSelector: false})}
+          action={path => this.importConfig(path)} title="Select Config File"  actionName="Select"
+          driveObjects={this.state.driveObjects} type="file" />
           <table className="mx-auto">
+            {inputModeRow}
             <tr>
               <td>
                 <span className="m-3">Data Lake Path:</span>
@@ -332,6 +426,20 @@ class App extends React.Component {
               <td>
                 <input type="text" value={this.state.featurizerChunks} className="p-1 m-3 number-input" onChange={e => this.setState({featurizerChunks: e.target.value})} />
               </td>
+            </tr>
+            <tr>
+              <td>
+                <span className="m-3">Learner:</span>
+              </td>
+              <td>
+                <button className="btn btn-secondary m-3" >
+                  Configure
+                </button>
+              </td>
+              <td />
+              <td />
+              <td />
+              <td />
             </tr>
             <tr>
               <td colSpan={6}>
