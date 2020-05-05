@@ -6,4 +6,5 @@ urlpatterns = [
     path('access-token/', views.AuthenticationToken.as_view()),
     path('execute-workflow/', views.ExecuteWorkflow.as_view()),
     path('status/', views.WorkflowStatus.as_view()),
+    path('complete-iteration/', views.CompleteIteration.as_view())
 ]

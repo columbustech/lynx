@@ -3,3 +3,4 @@ djangorestframework
 pandas
 requests
 gunicorn
+scikit-learn

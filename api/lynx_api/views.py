@@ -8,7 +8,8 @@ from rest_framework.parsers import JSONParser
 
 from .models import SMJob
 from .serializers import SMJobSerializer
-from .actions import execute_workflow
+from .job_manager import SMJobManager
+from .actions import execute_workflow, complete_iteration
 
 import os, requests, string, random, threading, logging
 
@@ -67,3 +68,10 @@ class WorkflowStatus(APIView):
         uid = request.query_params['uid']
         sm_job = SMJob.objects.filter(uid=uid)[0]
         return Response(SMJobSerializer(sm_job).data, status=status.HTTP_200_OK)
+
+class CompleteIteration(APIView):
+    parser_class = (JSONParser,)
+
+    def post(self, request):
+        uid = request.data['retId']
+        return Response({'redirectUrl': complete_iteration(uid)}, status=status.HTTP_200_OK)

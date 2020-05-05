@@ -2,6 +2,8 @@ import React from 'react';
 import Cookies from 'universal-cookie';
 import axios from 'axios';
 import CDrivePathSelector from './CDrivePathSelector';
+import { Modal, Button } from 'react-bootstrap';
+import JobStatus from './JobStatus';
 import './App.css';
 
 class App extends React.Component {
@@ -13,6 +15,7 @@ class App extends React.Component {
       inputMode: "ui",
       configFilePath: "",
       configFilePathSelector: false,
+      learnerInputs: false,
       inputDir: "",
       inputDirSelector: false,
       outputDir: "",
@@ -48,6 +51,9 @@ class App extends React.Component {
     this.pollStatus = this.pollStatus.bind(this);
     this.importConfig = this.importConfig.bind(this);
   }
+  componentDidMount() {
+    this.getSpecs();
+  }
   getSpecs() {
     const request = axios({
       method: 'GET',
@@ -55,22 +61,25 @@ class App extends React.Component {
     });
     request.then(
       response => {
-        this.setState({specs: response.data});
+        this.setState({specs: response.data}, this.authenticateUser);
       },
     );
   }
   authenticateUser() {
     const cookies = new Cookies();
     var accessToken = cookies.get('lynx_token');
+    console.log(accessToken);
     if (accessToken !== undefined) {
+      console.log("Reached here");
       this.getDriveObjects().then(driveObjects => this.setState({driveObjects: driveObjects}));
       this.setState({isLoggedIn: true});
-      return;
+      return (null);
     }
     var url = new URL(window.location.href);
     var code = url.searchParams.get("code");
     var redirect_uri = `${this.state.specs.cdriveUrl}app/${this.state.specs.username}/lynx/`;
     if (code == null) {
+      console.log("And here somehow");
       window.location.href = `${this.state.specs.authUrl}o/authorize/?response_type=code&client_id=${this.state.specs.clientId}&redirect_uri=${redirect_uri}&state=1234xyz`;
     } else {
       const request = axios({
@@ -83,7 +92,7 @@ class App extends React.Component {
       });
       request.then(
         response => {
-          cookies.set('lynx_token', response.data.access_token);
+          cookies.set('lynx_token', response.data.access_token, {sameSite: false, path: '/'});
           window.location.href = redirect_uri;
         }, err => {
         }
@@ -104,6 +113,7 @@ class App extends React.Component {
           resolve(response.data.driveObjects);
         }, err => {
           if(err.response.status === 401) {
+            console.log("Removing cookie");
             cookies.remove('lynx_token');
             window.location.reload(false);
           } else {
@@ -174,6 +184,8 @@ class App extends React.Component {
         }
         if(response.data.status === "Running") {
           setTimeout(() => this.pollStatus(), 1000);
+        } else if (response.data.status === "Ready") {
+          window.location.href = response.data.long_status;
         }
       }, err => {
         setTimeout(() => this.pollStatus(), 1000);
@@ -211,12 +223,15 @@ class App extends React.Component {
     );
   }
   render() {
-    if (Object.keys(this.state.specs).length === 0) {
-      this.getSpecs();
+    var url = new URL(window.location.href);
+    var uid = url.searchParams.get("uid");
+    if (!this.state.isLoggedIn) {
       return (null);
-    } else if (!this.state.isLoggedIn) {
-      this.authenticateUser();
-      return (null);
+    } else if (uid) {
+      console.log("reached correct block");
+      return (
+        <JobStatus specs={this.state.specs} uid={uid} />
+      )
     } else {
       let inputDir, outputDir;
       function getName(cDrivePath) {
@@ -278,7 +293,7 @@ class App extends React.Component {
         }
         statusContainer = (
           <div className="blocker-status">
-            <span className={statusClasses}>{this.state.fnStatus} : {this.state.fnMessage}, Elapsed time: {this.state.fnElapsed}</span>
+            <span className={statusClasses}>{this.state.fnStatus} : {this.state.fnMessage}</span>
             {
             //{actionButton}
             }
@@ -331,6 +346,64 @@ class App extends React.Component {
           </tr>
         )
       }
+      let learnerInputsModal;
+      learnerInputsModal = (
+        <Modal show={this.state.learnerInputs} onHide={() => this.setState({learnerInputs: false})}>
+          <Modal.Header closeButton>
+            <Modal.Title>Configure Active Learning Model</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <table className="mx-auto">
+              <tr>
+                <td>
+                  <span className="m-3">Seed Path:</span>
+                </td>
+                <td colSpan={3}>
+                  <input type="text" placeholder="Seed examples path" value={this.state.seedPath} className="p-2 m-3 cdrive-input-item"
+                    onChange={e => this.setState({seedPath: e.target.value})} />
+                </td>
+              </tr>
+                <td>
+                  <span className="m-3">No. of Trees:</span>
+                </td>
+                <td>
+                  <input type="text" value={this.state.nEstimators} className="p-1 m-3 number-input"
+                    onChange={e => this.setState({nEstimators: e.target.value})} />
+                </td>
+                <td>
+                  <span className="m-3">No. of Iterations:</span>
+                </td>
+                <td>
+                  <input type="text" value={this.state.iterations} className="p-1 m-3 number-input"
+                    onChange={e => this.setState({iterations: e.target.value})} />
+                </td>
+              <tr>
+                <td>
+                  <span className="m-3">Batch Size:</span>
+                </td>
+                <td>
+                  <input type="text" value={this.state.batchSize} className="p-1 m-3 number-input"
+                    onChange={e => this.setState({batchSize: e.target.value})} />
+                </td>
+                <td>
+                  <span className="m-3">Min Test Size:</span>
+                </td>
+                <td>
+                  <input type="text" value={this.state.minTestSize} className="p-1 m-3 number-input"
+                    onChange={e => this.setState({minTestSize: e.target.value})} />
+                </td>
+              </tr>
+              <tr>
+              </tr>
+            </table>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="primary" onClick={() => this.setState({learnerInputs: false})}>
+              Done
+            </Button>
+          </Modal.Footer>
+        </Modal>
+      );
       return(
         <div className="app-container">
           <div className="app-header">
@@ -345,6 +418,7 @@ class App extends React.Component {
           <CDrivePathSelector show={this.state.configFilePathSelector} toggle={() => this.setState({configFilePathSelector: false})}
           action={path => this.importConfig(path)} title="Select Config File"  actionName="Select"
           driveObjects={this.state.driveObjects} type="file" />
+          {learnerInputsModal}
           <table className="mx-auto">
             {inputModeRow}
             <tr>
@@ -432,7 +506,7 @@ class App extends React.Component {
                 <span className="m-3">Learner:</span>
               </td>
               <td>
-                <button className="btn btn-secondary m-3" >
+                <button className="btn btn-secondary m-3" onClick={() => this.setState({learnerInputs: true})}>
                   Configure
                 </button>
               </td>

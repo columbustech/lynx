@@ -22,6 +22,7 @@ RUN npm run build
 
 COPY entrypoint.sh /usr/local/bin
 COPY proxy.conf /etc/nginx/conf.d
+COPY options.json /
 
 WORKDIR /api
 
