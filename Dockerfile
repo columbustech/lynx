@@ -16,9 +16,7 @@ COPY api .
 
 WORKDIR /ui
 COPY ui .
-
 RUN npm install
-RUN npm run build
 
 COPY entrypoint.sh /usr/local/bin
 COPY proxy.conf /etc/nginx/conf.d

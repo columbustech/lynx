@@ -1,5 +1,6 @@
 #!/bin/bash
 mkdir -p /storage/public/
+(cd /ui && PUBLIC_URL="$CDRIVE_URL"app/"$COLUMBUS_USERNAME"/lynx npm run build)
 cp -r /ui/build/* /storage/public/
 mkdir -p /storage/lynx-data
 service nginx start &

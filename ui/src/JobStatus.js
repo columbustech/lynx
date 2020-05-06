@@ -1,7 +1,7 @@
 import React from 'react';
 import Cookies from 'universal-cookie';
 import axios from 'axios';
-import './App.css';
+import './Lynx.css';
 
 class JobStatus extends React.Component{
   constructor(props) {
@@ -57,7 +57,21 @@ class JobStatus extends React.Component{
         </div>
       );
     } else if (this.state.jobStatus === "Complete") {
-      return (null);
+      return(
+        <div className="app-container">
+          <div className="app-header">
+            Job Complete
+          </div>
+          <div className="input-div">
+            <span className="mx-2">Download active learning model {"for"} schema matching</span>
+          </div>
+          <div className="input-div text-center">
+            <button className="btn btn-primary btn-lg blocker-btn">
+              Download Model
+            </button>
+          </div>
+        </div>
+      );
     }
   }
 }
