@@ -41,7 +41,8 @@ class App extends React.Component {
       fnElapsed: "",
       logsAvailable: false,
       logsPage: false,
-      completePage: false
+      completePage: false,
+      statusPage: false
     };
     this.getSpecs = this.getSpecs.bind(this);
     this.authenticateUser = this.authenticateUser.bind(this);
@@ -52,7 +53,11 @@ class App extends React.Component {
     this.importConfig = this.importConfig.bind(this);
   }
   componentDidMount() {
-    this.getSpecs();
+    var url = new URL(window.location.href);
+    var uid = url.searchParams.get("uid");
+    if (uid) {
+      this.setState({statusPage: true, uid: uid});
+    }
   }
   getSpecs() {
     const request = axios({
@@ -68,9 +73,7 @@ class App extends React.Component {
   authenticateUser() {
     const cookies = new Cookies();
     var accessToken = cookies.get('lynx_token');
-    console.log(accessToken);
     if (accessToken !== undefined) {
-      console.log("Reached here");
       this.getDriveObjects().then(driveObjects => this.setState({driveObjects: driveObjects}));
       this.setState({isLoggedIn: true});
       return (null);
@@ -79,7 +82,6 @@ class App extends React.Component {
     var code = url.searchParams.get("code");
     var redirect_uri = `${this.state.specs.cdriveUrl}app/${this.state.specs.username}/lynx/`;
     if (code == null) {
-      console.log("And here somehow");
       window.location.href = `${this.state.specs.authUrl}o/authorize/?response_type=code&client_id=${this.state.specs.clientId}&redirect_uri=${redirect_uri}&state=1234xyz`;
     } else {
       const request = axios({
@@ -113,7 +115,6 @@ class App extends React.Component {
           resolve(response.data.driveObjects);
         }, err => {
           if(err.response.status === 401) {
-            console.log("Removing cookie");
             cookies.remove('lynx_token');
             window.location.reload(false);
           } else {
@@ -223,15 +224,16 @@ class App extends React.Component {
     );
   }
   render() {
-    var url = new URL(window.location.href);
-    var uid = url.searchParams.get("uid");
-    if (!this.state.isLoggedIn) {
+    if (Object.keys(this.state.specs).length === 0) {
+      this.getSpecs();
       return (null);
-    } else if (uid) {
-      console.log("reached correct block");
+    } else if (this.state.statusPage) {
       return (
-        <JobStatus specs={this.state.specs} uid={uid} />
+        <JobStatus specs={this.state.specs} uid={this.state.uid} />
       )
+    } else if (!this.state.isLoggedIn) {
+      this.authenticateUser();
+      return (null);
     } else {
       let inputDir, outputDir;
       function getName(cDrivePath) {

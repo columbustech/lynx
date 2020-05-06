@@ -204,4 +204,4 @@ class SMJobManager:
         new_examples['label'] = new_examples['label'].map({'Yes': 1, 'No': 0})
         self.train = pd.concat([self.train, new_examples])
         self.run_iteration()
-        return os.environ['CDRIVE_URL'] + '/app/' + os.environ['COLUMBUS_USERNAME'] + '/lynx/?uid=' + self.uid
+        return os.environ['CDRIVE_URL'] + 'app/' + os.environ['COLUMBUS_USERNAME'] + '/lynx/?uid=' + self.uid
