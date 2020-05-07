@@ -7,10 +7,11 @@ class JobStatus extends React.Component{
   constructor(props) {
     super(props);
     this.state = {
-      jobStatus: "",
-      longStatus: "",
+      job: null,
+      saved: false
     };
     this.pollStatus = this.pollStatus.bind(this);
+    this.saveModel = this.saveModel.bind(this);
   }
   pollStatus() {
     const request = axios({
@@ -21,55 +22,95 @@ class JobStatus extends React.Component{
       response => {
         if (response.data.status === "Running") {
           setTimeout(() => this.pollStatus(), 1000);
-        } else if (response.data.status === "Ready") {
-        } else if (response.data.status === "Complete") {
         }
         this.setState({
-          jobStatus: response.data.status,
-          longStatus: response.data.long_status
+          job: response.data
         });
       },
     );
   }
+  saveModel() {
+    const cookies = new Cookies();
+    const request = axios({
+      method: 'POST',
+      url: `${this.props.specs.cdriveUrl}/app/${this.props.specs.username}/lynx/api/save-model/`,
+      data: {
+        uid: this.state.job.uid,
+      },
+      headers: {
+        'Authorization': `Bearer ${cookies.get('lynx_token')}`,
+      }
+    });
+    request.then(
+      response => {
+        this.setState({saved: true});
+      },
+    );
+
+  }
   render() {
-    if (this.state.jobStatus === "") {
+    if (!this.state.job) {
       this.pollStatus();
       return(null);
-    } else if (this.state.jobStatus === "Running") {
-      return(null);
-    } else if (this.state.jobStatus === "Ready") {
-      return(
-        <div className="app-container">
-          <div className="app-header">
-            Iteration Complete
-          </div>
-          <div className="input-div">
-            <span className="mx-2">Label examples {"for"} next iteration</span>
-          </div>
-          <div className="input-div text-center">
-            <a className="btn btn-primary btn-lg blocker-btn" href={this.state.longStatus}>
-              Start
-            </a>
-            <button className="btn btn-secondary btn-lg blocker-btn" >
-              Download Model
-            </button>
-          </div>
-        </div>
+    } else {
+      let actions;
+      actions = [];
+      if(this.state.job.status === "Ready") {
+        actions.push(
+          <a className="btn btn-primary btn-lg blocker-btn" href={this.state.job.labeling_url}>
+            Start Labeling
+          </a>
+        );
+        actions.push(
+          <button className="btn btn-secondary btn-lg blocker-btn" onClick={this.saveModel}>
+            Save Model
+          </button>
+        );
+        actions.push(
+          <button className="btn btn-secondary btn-lg blocker-btn" >
+            Apply Model
+          </button>
+        );
+      } else if (this.state.job.status === "Complete") {
+        actions.push(
+          <button className="btn btn-primary btn-lg blocker-btn" onClick={this.saveModel}>
+            Save Model
+          </button>
+        );
+        actions.push(
+          <button className="btn btn-secondary btn-lg blocker-btn" >
+            Apply Model
+          </button>
+        );
+      }
+      actions.push(
+        <a className="btn btn-secondary btn-lg blocker-btn" href={`${this.props.specs.cdriveUrl}app/${this.props.specs.username}/lynx/`}>
+          Home
+        </a>
       );
-    } else if (this.state.jobStatus === "Complete") {
+      let saveStatus;
+      if (this.state.saved) {
+        saveStatus = (
+          <div className="input-div">
+            <span className="mx-2 h5 font-weight-normal">Model saved to CDrive output path!</span>
+          </div>
+        );
+      }
       return(
         <div className="app-container">
           <div className="app-header">
-            Job Complete
+            Job Name: {this.state.job.job_name}
+          </div>
+          <div className="input-div" style={{marginTop: 30}}>
+            <span className="mx-2 h5 font-weight-normal">Stage: {this.state.job.stage}</span>
           </div>
           <div className="input-div">
-            <span className="mx-2">Download active learning model {"for"} schema matching</span>
+            <span className="mx-2 h5 font-weight-normal">Status: {this.state.job.long_status}</span>
           </div>
           <div className="input-div text-center">
-            <button className="btn btn-primary btn-lg blocker-btn">
-              Download Model
-            </button>
+            {actions}
           </div>
+          {saveStatus}
         </div>
       );
     }

@@ -2,6 +2,7 @@ import React from 'react';
 import Cookies from 'universal-cookie';
 import axios from 'axios';
 import JobStatus from './JobStatus';
+import CreateJob from './CreateJob';
 import Home from './Home';
 
 class App extends React.Component {
@@ -31,7 +32,7 @@ class App extends React.Component {
     } else {
       const request = axios({
         method: 'POST',
-        url: `${redirect_uri}api/access-token`,
+        url: `${redirect_uri}api/access-token/`,
         data: {
           code: code,
           redirect_uri: redirect_uri
@@ -52,6 +53,8 @@ class App extends React.Component {
     if ((tokens.length>5) && (tokens[4] === "job")) {
       newState['component'] = JobStatus;
       newState['uid'] = tokens[5];
+    } else if((tokens.length>4) && (tokens[4] === "create")) {
+      newState['component'] = CreateJob;
     } else {
       newState['component'] = Home;
     }

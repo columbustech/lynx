@@ -4,6 +4,7 @@ from .models import SMJob
 import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
+import joblib
 
 def calculate_entropy(p1, p2):
     log_p1 = 0 if p1 == 0 else np.log2(p1)
@@ -17,6 +18,7 @@ class SMJobManager:
         self.block_frame = None
         self.features_frame = None
         self.train = None
+        self.model = None
     def profile(self):
         data = {
             'inputDir': self.input_dir,
@@ -138,20 +140,24 @@ class SMJobManager:
         sm_job = SMJob.objects.filter(uid=self.uid)[0]
         sm_job.stage = "Active Learning"
         sm_job.status = "Running"
-        sm_job.long_status = "Iteration " + str(self.current_iteration)
+        if self.current_iteration == 0:
+            sm_job.long_status = "Initializing"
+        else:
+            sm_job.long_status = 'Iteration ' + str(self.current_iteration) + '/' + str(self.iterations) 
+        sm_job.iteration = self.current_iteration
         sm_job.save()
         self.train = self.train.sort_values('id').reset_index(drop=True)
-        model = RandomForestClassifier(n_estimators=self.n_estimators)
+        self.model = RandomForestClassifier(n_estimators=self.n_estimators)
         X_train = self.features_frame[self.features_frame['id'].isin(self.train['id'])]
         del X_train['id']
         y_train = self.train['label'].values.ravel() 
-        model.fit(X_train, y_train)
+        self.model.fit(X_train, y_train)
         X_test = self.features_frame[~self.features_frame['id'].isin(self.train['id'])]
         if ((self.current_iteration < self.iterations) and (len(X_test) > self.min_test_size)):
             entropies = pd.DataFrame()
             entropies['id'] = X_test['id']
             del X_test['id']
-            probabilities = model.predict_proba(X_test)
+            probabilities = self.model.predict_proba(X_test)
             entropies['prob_0'] = probabilities[:,0]
             entropies["prob_1"] = probabilities[:,1]
             entropies["entropy"] = entropies.apply(lambda en: calculate_entropy(en.get("prob_0").item(), en.get("prob_1").item()), axis=1)
@@ -190,7 +196,11 @@ class SMJobManager:
         sm_job = SMJob.objects.filter(uid=self.uid)[0]
         sm_job.stage = 'Active Learning'
         sm_job.status = 'Ready'
-        sm_job.long_status = os.environ['CDRIVE_URL'] + 'app/' + os.environ['COLUMBUS_USERNAME'] + '/labeler/example/' + task_name
+        sm_job.labeling_url = os.environ['CDRIVE_URL'] + 'app/' + os.environ['COLUMBUS_USERNAME'] + '/labeler/example/' + task_name
+        long_status = ""
+        if self.current_iteration != 0:
+            long_status = "Iteration :" + str(self.current_iteration) + " complete. "
+        sm_job.long_status = long_status + "Label examples for iteration " + str(self.current_iteration + 1)
         sm_job.save()
     def complete_iteration(self): 
         sm_job = SMJob.objects.filter(uid=self.uid)[0]
@@ -205,3 +215,11 @@ class SMJobManager:
         self.train = pd.concat([self.train, new_examples])
         self.run_iteration()
         return os.environ['CDRIVE_URL'] + 'app/' + os.environ['COLUMBUS_USERNAME'] + '/lynx/job/' + self.uid
+    def save_model(self):
+        file_name = 'iteration-' + str(self.current_iteration) + '-model.joblib'
+        joblib.dump(self.model, settings.DATA_PATH + '/' + self.uid + '/' + file_name) 
+    def upload_model(self):
+        file_name = 'iteration-' + str(self.current_iteration) + '-model.joblib'
+        f = open(settings.DATA_PATH + '/' + self.uid + '/' + file_name, 'rb')
+        file_arg = {'file': (file_name, f), 'path': (None, self.output_dir)}
+        requests.post('http://cdrive/upload/', files=file_arg, headers={'Authorization': self.auth_header})

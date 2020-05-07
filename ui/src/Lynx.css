@@ -33,3 +33,14 @@
   font-size: 20px;
   margin: 15px;
 }
+.app-table {
+  float: left;
+  width: 75%;
+}
+.app-menu {
+  float: right;
+  width: 25%;
+}
+.app-row:hover {
+  cursor: pointer;
+}

@@ -20,7 +20,7 @@ def execute_workflow(uid, auth_header, data):
         featurizer_chunks = data['featurizerChunks'],
         seed_path = data['seedPath'],
         iterations = int(data['iterations']),
-        current_iteration = 0,
+        current_iteration = -1,
         n_estimators = int(data['nEstimators']),
         batch_size = int(data['batchSize']),
         min_test_size = int(data['minTestSize'])
@@ -35,3 +35,8 @@ def execute_workflow(uid, auth_header, data):
 def complete_iteration(uid):
     jm = job_managers[uid]
     return jm.complete_iteration()
+
+def save_model(uid):
+    jm = job_managers[uid]
+    jm.save_model()
+    jm.upload_model()
