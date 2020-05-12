@@ -40,3 +40,7 @@ def save_model(uid):
     jm = job_managers[uid]
     jm.save_model()
     jm.upload_model()
+
+def apply_model(uid):
+    jm = job_managers[uid]
+    jm.apply_model()

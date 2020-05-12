@@ -12,10 +12,14 @@ class Home extends React.Component {
     this.state = {
       jobList: [],
     };
+    this.listJobs = this.listJobs.bind(this);
     this.selectJob = this.selectJob.bind(this);
     this.deleteJob = this.deleteJob.bind(this);
   }
   componentDidMount() {
+    this.listJobs();
+  }
+  listJobs() {
     const cookies = new Cookies();
     const request = axios({
       method: 'GET',
@@ -35,6 +39,18 @@ class Home extends React.Component {
     }
   }
   deleteJob(e, uid) {
+    const cookies = new Cookies();
+    const request = axios({
+      method: 'POST',
+      url: `${this.props.specs.cdriveUrl}app/${this.props.specs.username}/lynx/api/delete-job/`,
+      data: {
+        uid: uid
+      },
+      headers: {'Authorization': `Bearer ${cookies.get('lynx_token')}`}
+    });
+    request.then(response => {
+      this.listJobs();
+    },);
   }
   render() {
     let table;

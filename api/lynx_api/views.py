@@ -9,7 +9,7 @@ from rest_framework.parsers import JSONParser
 from .models import SMJob
 from .serializers import SMJobSerializer
 from .job_manager import SMJobManager
-from .actions import execute_workflow, complete_iteration, save_model
+from .actions import execute_workflow, complete_iteration, save_model, apply_model
 
 import os, requests, string, random, threading, logging
 
@@ -88,4 +88,20 @@ class SaveModel(APIView):
     def post(self, request):
         uid = request.data['uid']
         save_model(uid)
+        return Response(status=status.HTTP_200_OK)
+
+class ApplyModel(APIView):
+    parser_class = (JSONParser,)
+
+    def post(self, request):
+        uid = request.data['uid']
+        apply_model(uid)
+        return Response(status=status.HTTP_200_OK)
+
+class DeleteJob(APIView):
+    parser_class = (JSONParser,)
+
+    def post(self, request):
+        uid = request.data['uid']
+        SMJob.objects.filter(uid=uid).delete()
         return Response(status=status.HTTP_200_OK)

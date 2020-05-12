@@ -8,5 +8,7 @@ urlpatterns = [
     path('status/', views.WorkflowStatus.as_view()),
     path('complete-iteration/', views.CompleteIteration.as_view()),
     path('list-jobs/', views.ListJobs.as_view()),
-    path('save-model/', views.SaveModel.as_view())
+    path('save-model/', views.SaveModel.as_view()),
+    path('apply-model/', views.ApplyModel.as_view()),
+    path('delete-job/', views.DeleteJob.as_view())
 ]

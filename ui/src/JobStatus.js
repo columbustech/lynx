@@ -8,10 +8,11 @@ class JobStatus extends React.Component{
     super(props);
     this.state = {
       job: null,
-      saved: false
+      actionMessage: ""
     };
     this.pollStatus = this.pollStatus.bind(this);
     this.saveModel = this.saveModel.bind(this);
+    this.applyModel = this.applyModel.bind(this);
   }
   pollStatus() {
     const request = axios({
@@ -43,10 +44,28 @@ class JobStatus extends React.Component{
     });
     request.then(
       response => {
-        this.setState({saved: true});
+        this.setState({actionMessage: "Model saved to CDrive output path!"});
       },
     );
 
+  }
+  applyModel() {
+    const cookies = new Cookies();
+    const request = axios({
+      method: 'POST',
+      url: `${this.props.specs.cdriveUrl}/app/${this.props.specs.username}/lynx/api/apply-model/`,
+      data: {
+        uid: this.state.job.uid,
+      },
+      headers: {
+        'Authorization': `Bearer ${cookies.get('lynx_token')}`,
+      }
+    });
+    request.then(
+      response => {
+        this.setState({actionMessage: "Predictions for blocker output saved to CDrive output folder as predictions.csv"});
+      },
+    );
   }
   render() {
     if (!this.state.job) {
@@ -67,7 +86,7 @@ class JobStatus extends React.Component{
           </button>
         );
         actions.push(
-          <button className="btn btn-secondary btn-lg blocker-btn" >
+          <button className="btn btn-secondary btn-lg blocker-btn" onClick={this.applyModel}>
             Apply Model
           </button>
         );
@@ -78,7 +97,7 @@ class JobStatus extends React.Component{
           </button>
         );
         actions.push(
-          <button className="btn btn-secondary btn-lg blocker-btn" >
+          <button className="btn btn-secondary btn-lg blocker-btn" onClick={this.applyModel}>
             Apply Model
           </button>
         );
@@ -89,10 +108,13 @@ class JobStatus extends React.Component{
         </a>
       );
       let saveStatus;
-      if (this.state.saved) {
+      if (this.state.actionMessage !== "") {
         saveStatus = (
           <div className="input-div">
-            <span className="mx-2 h5 font-weight-normal">Model saved to CDrive output path!</span>
+            <span className="mx-2 h5 font-weight-normal">{this.state.actionMessage}</span>
+            <a className="btn ml-3 btn-primary" href={this.props.specs.cdriveUrl} >
+              View {"in"} CDrive
+            </a>
           </div>
         );
       }

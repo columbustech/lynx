@@ -114,6 +114,8 @@ class SMJobManager:
         }
         response = requests.post(url=featurizer_url + 'save', data=json.dumps(data), headers={'Authorization': self.auth_header, 'content-type': 'application/json'})
         return True
+    def generate_seed_rankings(self):
+        pass
     def init_learner(self):
         sm_job = SMJob.objects.filter(uid=self.uid)[0]
         sm_job.stage = "Active Learning"
@@ -199,7 +201,7 @@ class SMJobManager:
         sm_job.labeling_url = os.environ['CDRIVE_URL'] + 'app/' + os.environ['COLUMBUS_USERNAME'] + '/labeler/example/' + task_name
         long_status = ""
         if self.current_iteration != 0:
-            long_status = "Iteration :" + str(self.current_iteration) + " complete. "
+            long_status = "Iteration " + str(self.current_iteration) + " complete. "
         sm_job.long_status = long_status + "Label examples for iteration " + str(self.current_iteration + 1)
         sm_job.save()
     def complete_iteration(self): 
@@ -221,5 +223,17 @@ class SMJobManager:
     def upload_model(self):
         file_name = 'iteration-' + str(self.current_iteration) + '-model.joblib'
         f = open(settings.DATA_PATH + '/' + self.uid + '/' + file_name, 'rb')
+        file_arg = {'file': (file_name, f), 'path': (None, self.output_dir)}
+        requests.post('http://cdrive/upload/', files=file_arg, headers={'Authorization': self.auth_header})
+    def apply_model(self):
+        X_test = self.features_frame
+        del X_test['id']
+        predictions = pd.DataFrame()
+        predictions[['id', 'l_id', 'r_id']] = self.block_frame
+        predictions['label'] = self.model.predict(X_test)
+        file_name = 'predictions.csv'
+        file_path = settings.DATA_PATH + '/' + self.uid + '/' + file_name
+        predictions.to_csv(file_path, index=False)
+        f = open(file_path, 'rb')
         file_arg = {'file': (file_name, f), 'path': (None, self.output_dir)}
         requests.post('http://cdrive/upload/', files=file_arg, headers={'Authorization': self.auth_header})
