@@ -1,4 +1,4 @@
-FROM ubuntu
+FROM ubuntu:18.04
 RUN apt-get update && apt-get install -y python3 python3-pip curl vim wget nginx
 RUN curl -o ~/.vimrc https://raw.githubusercontent.com/kaushikc92/scripts/master/.vimrc
 RUN wget https://nodejs.org/dist/v12.13.1/node-v12.13.1-linux-x64.tar.xz

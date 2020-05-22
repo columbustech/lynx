@@ -151,58 +151,26 @@ class CreateJob extends React.Component {
     );
     let inputModeRow, configFileName;
     configFileName = getName(this.state.configFilePath);
-    if(this.state.inputMode === "ui") {
-      inputModeRow = (
-        <tr>
-          <td>
-            <span className="m-3">Job Name:</span>
-          </td>
-          <td>
-            <input type="text" placeholder="Job Name" value={this.state.jobName} className="p-2 m-3 cdrive-input-item"
-              onChange={e => this.setState({jobName: e.target.value})} />
-          </td>
-          <td>
-            <span className="m-3">Input Mode:</span>
-          </td>
-          <td colSpan={3}>
-            <div className="btn-group m-3" role="group">
-              <button className="btn btn-primary">User Interface</button>
-              <button className="btn btn-light" onClick={()=>this.setState({inputMode:"json"})}>Import</button>
-            </div>
-          </td>
-        </tr>
-      );
-    } else if (this.state.inputMode === "json"){
-      inputModeRow = (
-        <tr>
-          <td>
-            <span className="m-3">Job Name:</span>
-          </td>
-          <td>
-            <input type="text" placeholder="Job Name" value={this.state.jobName} className="p-2 m-3 cdrive-input-item"
-              onChange={e => this.setState({jobName: e.target.value})} />
-          </td>
-          <td>
-            <span className="m-3">Input Mode:</span>
-          </td>
-          <td colSpan={3}>
-            <div className="btn-group m-3" role="group">
-              <button className="btn btn-light" onClick={()=>this.setState({inputMode:"ui"})}>User Interface</button>
-              <button className="btn btn-primary">Import</button>
-            </div>
-          </td>
-          <td>
-            <span className="m-3">Config File:</span>
-          </td>
-          <td >
-            <button className="btn btn-secondary m-3" onClick={() => this.setState({configFilePathSelector : true})} >
-              Browse
-            </button>
-            <span className="m-3">{configFileName}</span>
-          </td>
-        </tr>
-      )
-    }
+    inputModeRow = (
+      <tr>
+        <td>
+          <span className="m-3">Job Name:</span>
+        </td>
+        <td>
+          <input type="text" placeholder="Job Name" value={this.state.jobName} className="p-2 m-3 cdrive-input-item"
+            onChange={e => this.setState({jobName: e.target.value})} />
+        </td>
+        <td>
+          <span className="m-3">Input Mode:</span>
+        </td>
+        <td colSpan={3}>
+          <div className="btn-group m-3" role="group">
+            <button className="btn btn-primary">User Interface</button>
+            <button className="btn btn-light" onClick={()=>this.setState({inputMode:"json", configFilePathSelector: true})}>Import</button>
+          </div>
+        </td>
+      </tr>
+    );
     let learnerInputsModal;
     learnerInputsModal = (
       <Modal show={this.state.learnerInputs} onHide={() => this.setState({learnerInputs: false})}>

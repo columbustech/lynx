@@ -5,3 +5,4 @@ requests
 gunicorn
 scikit-learn
 joblib
+py-cdrive-api

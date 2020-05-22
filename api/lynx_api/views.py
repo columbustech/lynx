@@ -11,7 +11,9 @@ from .serializers import SMJobSerializer
 from .job_manager import SMJobManager
 from .actions import execute_workflow, complete_iteration, save_model, apply_model
 
-import os, requests, string, random, threading, logging
+import py_cdrive_api
+
+import os, requests, string, random, threading, logging, json
 
 class Specs(APIView):
     parser_class = (JSONParser,)
@@ -22,7 +24,9 @@ class Specs(APIView):
             'authUrl': os.environ['AUTHENTICATION_URL'],
             'cdriveUrl': os.environ['CDRIVE_URL'],
             'cdriveApiUrl': os.environ['CDRIVE_API_URL'],
-            'username': os.environ['COLUMBUS_USERNAME']
+            'username': os.environ['COLUMBUS_USERNAME'],
+            'appName': os.environ['APP_NAME'],
+            'appUrl': os.environ['APP_URL']
         }
         return Response(data, status=status.HTTP_200_OK)
 
@@ -43,6 +47,31 @@ class AuthenticationToken(APIView):
         response = requests.post(url=os.environ['AUTHENTICATION_URL'] + 'o/token/', data=data)
 
         return Response(response.json(), status=response.status_code)
+
+class Config(APIView):
+    parser_class = (JSONParser,)
+
+    def get(self, request):
+        auth_header = request.META['HTTP_AUTHORIZATION']
+        token = auth_header.split()[1]
+        client = None
+        try:
+            client = py_cdrive_api.CDriveClient(access_token=token)
+            parent_details = client.list('users/' + os.environ['COLUMBUS_USERNAME'] + '/apps/lynx')
+            if(parent_details['permission'] != 'Edit'):
+                return Response(status=status.HTTP_403_FORBIDDEN)
+        except py_cdrive_api.UnauthorizedAccessException as e:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        except py_cdrive_api.ForbiddenAccessException as e:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        config_url = None
+        try:
+            config_url = client.download('users/' + os.environ['COLUMBUS_USERNAME'] + '/apps/lynx/default_config.json')
+        except py_cdrive_api.ForbiddenAccessException:
+            return Response({}, status=status.HTTP_200_OK)
+        response = requests.get(config_url)
+        return Response(json.loads(response.text), status=status.HTTP_200_OK)
 
 class ExecuteWorkflow(APIView):
     parser_class = (JSONParser,)

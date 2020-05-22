@@ -6,109 +6,224 @@ import Dropdown from 'react-bootstrap/Dropdown';
 import DropdownButton from 'react-bootstrap/DropdownButton';
 import './Lynx.css';
 
+class EditConfig extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      configFilePath: "",
+      configFilePathSelector: false,
+      learnerInputs: false,
+      inputDir: "",
+      inputDirSelector: false,
+      outputDir: "",
+      outputDirSelector: false,
+      profilerUrl: "",
+      profilerReplicas: "",
+      blockerUrl: "",
+      blockerReplicas: "",
+      blockerChunks: "",
+      featurizerUrl: "",
+      featurizerReplicas: "",
+      featurizerChunks: "",
+      iterations: "",
+      batchSize: "",
+      nEstimators: "",
+      minTestSize: "",
+      driveObjects: [],
+    };
+    this.getDriveObjects = this.getDriveObjects.bind(this);
+    this.startProcessing = this.startProcessing.bind(this);
+    this.importConfig = this.importConfig.bind(this);
+  }
+  getDriveObjects() {
+  }
+  startProcessing() {
+  }
+  importConfig() {
+  }
+  render() {
+    let execButton, cancelButton;
+    execButton = (
+      <button className="btn btn-lg btn-primary blocker-btn" onClick={this.startProcessing}>
+        Execute
+      </button>
+    );
+    cancelButton = (
+      <a className="btn btn-lg btn-secondary blocker-btn" href={this.props.specs.appUrl}>
+        Cancel
+      </a>
+    );
+    
+    return(
+      <div className="edit-config-container">
+        <div className="edit-config">
+          <div>
+            <span className="m-3 h5">Import Config:</span>
+            <button className="btn btn-secondary">
+              Browse
+            </button>
+          </div>
+          <div className="app-header">
+            OR
+          </div>
+          <div className="mb-4">
+            <span className="m-3 h5">Input config through UI:</span>
+          </div>
+          <table>
+            <tr>
+              <td>
+                <span className="m-3">Profiler:</span>
+              </td>
+              <td>
+                <input type="text" placeholder="Container URL" value={this.state.profilerUrl} className="p-2 m-3 cdrive-input-item"
+                  onChange={e => this.setState({profilerUrl: e.target.value})} />
+              </td>
+              <td>
+                <span className="m-3">No of Replicas:</span>
+              </td>
+              <td>
+                <input type="text" value={this.state.profilerReplicas} className="p-1 m-3 number-input"
+                  onChange={e => this.setState({profilerReplicas: e.target.value})} />
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <span className="m-3">Blocker:</span>
+              </td>
+              <td>
+                <input type="text" placeholder="Container URL" value={this.state.blockerUrl} className="p-2 m-3 cdrive-input-item"
+                  onChange={e => this.setState({blockerUrl: e.target.value})} />
+              </td>
+              <td>
+                <span className="m-3">No of Replicas:</span>
+              </td>
+              <td>
+                <input type="text" value={this.state.blockerReplicas} className="p-1 m-3 number-input"
+                  onChange={e => this.setState({blockerReplicas: e.target.value})} />
+              </td>
+              <td>
+                <span className="m-3">Input Chunks:</span>
+              </td>
+              <td>
+                <input type="text" value={this.state.blockerChunks} className="p-1 m-3 number-input" onChange={e => this.setState({blockerChunks: e.target.value})} />
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <span className="m-3">Featurizer:</span>
+              </td>
+              <td>
+                <input type="text" placeholder="Container URL" value={this.state.featurizerUrl} className="p-2 m-3 cdrive-input-item"
+                  onChange={e => this.setState({featurizerUrl: e.target.value})} />
+              </td>
+              <td>
+                <span className="m-3">No of Replicas:</span>
+              </td>
+              <td>
+                <input type="text" value={this.state.featurizerReplicas} className="p-1 m-3 number-input"
+                  onChange={e => this.setState({featurizerReplicas: e.target.value})} />
+              </td>
+              <td>
+                <span className="m-3">Input Chunks:</span>
+              </td>
+              <td>
+                <input type="text" value={this.state.featurizerChunks} className="p-1 m-3 number-input" onChange={e => this.setState({featurizerChunks: e.target.value})} />
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <span className="m-3">Learner:</span>
+              </td>
+              <td>
+                <button className="btn btn-secondary m-3" onClick={() => this.setState({learnerInputs: true})}>
+                  Configure
+                </button>
+              </td>
+            </tr>
+            <tr>
+              <td colSpan={6}>
+                <div className="input-div text-center">
+                  {execButton}
+                  {cancelButton}
+                </div>
+              </td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    );
+  }
+}
+
+class CreateJob extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      driveObjects: "",
+      lakePath: "",
+      title: "Lynx 1.0: End-to-End Semantic Matching",
+      profilerUrl: "",
+      profilerReplicas: "",
+      blockerUrl: "",
+      blockerReplicas: "",
+      blockerChunks: "",
+      featurizerUrl: "",
+      featurizerReplicas: "",
+      featurizerChunks: "",
+      iterations: "",
+      minTestSize: "",
+      nEstimators: "",
+      batchSize: ""
+    };
+  }
+  componentDidMount() {
+    this.setState(this.props.config);
+  }
+  render() {
+    return(
+      <div className="app-page">
+        <div className="app-header">
+          {this.state.title}
+        </div>
+        <div className="create-job-container">
+          <div className="create-job">
+            <input type="text" className="create-text-input" placeholder="Path to Data Lake" />
+            <button className="btn btn-secondary btn-lg browse-button" type="button">Browse</button>
+            <button className="btn btn-primary btn-lg execute-button" type="button">Execute</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+}
+
 class Home extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      jobList: [],
+      component: CreateJob,
+      pageReady: false
     };
-    this.listJobs = this.listJobs.bind(this);
-    this.selectJob = this.selectJob.bind(this);
-    this.deleteJob = this.deleteJob.bind(this);
   }
   componentDidMount() {
-    this.listJobs();
-  }
-  listJobs() {
-    const cookies = new Cookies();
-    const request = axios({
-      method: 'GET',
-      url: `${this.props.specs.cdriveUrl}app/${this.props.specs.username}/lynx/api/list-jobs/`,
-      headers: {'Authorization': `Bearer ${cookies.get('lynx_token')}`}
-    });
-    request.then(response => {
+    if (Object.keys(this.props.config).length === 0) {
       this.setState({
-        jobList: response.data
+        pageReady: true,
+        component: <EditConfig specs={this.props.specs}/>
       });
-    },err => {
-    });
-  }
-  selectJob(e, uid) {
-    if (!e.target.classList.contains("dropdown-item") && !e.target.classList.contains("btn")) {
-      window.location.href = `${this.props.specs.cdriveUrl}app/${this.props.specs.username}/lynx/job/${uid}`;
+    } else {
+      this.setState({
+        pageReady: true,
+        component: <CreateJob config={this.props.config} />
+      });
     }
-  }
-  deleteJob(e, uid) {
-    const cookies = new Cookies();
-    const request = axios({
-      method: 'POST',
-      url: `${this.props.specs.cdriveUrl}app/${this.props.specs.username}/lynx/api/delete-job/`,
-      data: {
-        uid: uid
-      },
-      headers: {'Authorization': `Bearer ${cookies.get('lynx_token')}`}
-    });
-    request.then(response => {
-      this.listJobs();
-    },);
   }
   render() {
-    let table;
-    if (this.state.jobList.length !== 0) {
-      let rows;
-      rows = this.state.jobList.map((job, i) => {
-        return (
-          <tr key={i} className="app-row" onClick={e => this.selectJob(e, job.uid)}>
-            <td>
-              {job.job_name}
-            </td>
-            <td>
-              {job.stage}
-            </td>
-            <td>
-              <DropdownButton variant="transparent" title="" alignRight >
-                <Dropdown.Item onClick={e => this.deleteJob(e, job.uid)}>
-                  Delete
-                </Dropdown.Item>
-              </DropdownButton>
-            </td>
-          </tr>
-        );
-      });
-      table = (
-        <Table>
-          <thead>
-            <tr>
-              <td style={{minWidth: 200}}>Job Name</td>
-              <td style={{minWidth: 200}}>Stage</td>
-              <td>Actions</td>
-            </tr>
-          </thead>
-          <tbody>
-            {rows}
-          </tbody>
-        </Table>
-      );
+    if (this.state.pageReady) {
+      return this.state.component;
     } else {
-      table = (
-        <div>No Existing Schema Matching Jobs on Lynx</div>
-      );
+      return (null);
     }
-    return (
-      <div className="app-container">
-        <div className="app-header">
-          Lynx: An End to End Schema Matching Solution
-        </div>
-        <div className="app-table mt-5">
-          {table}
-        </div>
-        <div className="app-menu mt-5">
-          <a className="btn btn-primary" href={`${this.props.specs.cdriveUrl}app/${this.props.specs.username}/lynx/create`} style={{marginLeft: 50, width: 150}}>
-            New Job
-          </a>
-        </div>
-      </div>
-    );
   }
 }
 
