@@ -35,10 +35,15 @@ class SMJobManager:
             status = res.json()['fnStatus']
             if status == 'complete':
                 return True
-            elif status == 'running':
-                if sm_job.long_status != res.json()['fnMessage'] :
-                    sm_job.long_status = res.json()['fnMessage']
-                sm_job.save()
+            elif status == 'executing':
+                if sm_job.long_status != status :
+                    sm_job.long_status = status
+                    sm_job.save()
+                
+            #elif status == 'running':
+            #    if sm_job.long_status != res.json()['fnMessage'] :
+            #        sm_job.long_status = res.json()['fnMessage']
+            #   sm_job.save()
     def block(self):
         blocker_url = 'http://blocker-' + os.environ['COLUMBUS_USERNAME'] + '/api/'
         data = {

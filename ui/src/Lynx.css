@@ -74,19 +74,25 @@
   width: 400px;
   height: 50px;
   padding: 0px 5px 5px 10px;
+  border: 2px solid #999999;
+  border-right: 0;
 }
 .create-text-input:focus {
   outline: None;
 }
 .browse-button {
   border-radius: 0;
-  width: 100px;
   height: 50px;
+  border: 2px solid #999999;
+}
+.browse-button:focus {
+  outline: None;
 }
 .execute-button {
   border-radius: 0;
   width: 150px;
   height: 50px;
+  margin-left: 15px;
 }
 .edit-config-container {
   width: 80%;

@@ -73,6 +73,25 @@ class Config(APIView):
         response = requests.get(config_url)
         return Response(json.loads(response.text), status=status.HTTP_200_OK)
 
+class SaveConfig(APIView):
+    parser_class = (JSONParser,)
+
+    def post(self, request):
+        auth_header = request.META['HTTP_AUTHORIZATION']
+        token = auth_header.split()[1]
+        config_string = request.data['config']
+        client = None
+        try:
+            client = py_cdrive_api.CDriveClient(access_token=token)
+            client.delete('users/' + os.environ['COLUMBUS_USERNAME'] + '/apps/lynx/default_config.json')
+        except py_cdrive_api.UnauthorizedAccessException as e:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        except py_cdrive_api.ForbiddenAccessException as e:
+            pass
+
+        client.upload(cdrive_path='users/' + os.environ['COLUMBUS_USERNAME'] + '/apps/lynx', content=config_string, file_name='default_config.json')
+        return Response(status=status.HTTP_200_OK)
+
 class ExecuteWorkflow(APIView):
     parser_class = (JSONParser,)
 
@@ -82,10 +101,11 @@ class ExecuteWorkflow(APIView):
         token = auth_header.split()[1]
 
         uid = ''.join(random.choices(string.ascii_lowercase + string.digits,k=10))
-        sm_job = SMJob(uid=uid, job_name=request.data['jobName'], stage="Profiling", status="Running", long_status="Initializing")
+        #sm_job = SMJob(uid=uid, job_name=request.data['jobName'], stage="Profiling", status="Running", long_status="Initializing")
+        sm_job = SMJob(uid=uid, job_name=uid, stage="Profiling", status="Running", long_status="Initializing")
         sm_job.save()
 
-        t = threading.Thread(target=execute_workflow, args=(uid, auth_header, request.data))
+        t = threading.Thread(target=execute_workflow, args=(uid, token, request.data))
         t.start()
 
         return Response({'uid':uid}, status=status.HTTP_200_OK)

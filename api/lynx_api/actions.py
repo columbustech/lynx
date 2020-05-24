@@ -2,14 +2,24 @@ from .job_manager import *
 import os
 from django.conf import settings
 from .job_manager_factory import job_managers
+import py_cdrive_api
 
-def execute_workflow(uid, auth_header, data):
+def execute_workflow(uid, token, data):
     os.mkdir(os.path.join(settings.DATA_PATH, uid))
+    client = py_cdrive_api(access_token=token)
+    parent = client.list('users/' + os.environ['COLUMBUS_USERNAME'] + '/apps/lynx')
+    data_query_it = filter(lambda x: x['name'] == 'data', parent['driveObjects'])
+    try:
+        data_folder = next(data_query_it)
+    except StopIteration:
+        client.create('users/' + os.environ['COLUMBUS_USERNAME'] + '/apps/lynx', 'data')
+    client.create('users/' + os.environ['COLUMBUS_USERNAME'] + '/apps/lynx/data', uid)
+
     jm = SMJobManager(
         uid=uid,
-        auth_header = auth_header,
-        input_dir = data['inputDir'],
-        output_dir = data['outputDir'],
+        auth_header = 'Bearer ' + token,
+        input_dir = data['lakePath'],
+        output_dir = 'users/' + os.environ['COLUMBUS_USERNAME'] + '/apps/lynx/data/' + uid,
         profiler_url = data['profilerUrl'],
         profiler_replicas = data['profilerReplicas'],
         blocker_url = data['blockerUrl'],
@@ -18,7 +28,6 @@ def execute_workflow(uid, auth_header, data):
         featurizer_url = data['featurizerUrl'],
         featurizer_replicas = data['featurizerReplicas'],
         featurizer_chunks = data['featurizerChunks'],
-        seed_path = data['seedPath'],
         iterations = int(data['iterations']),
         current_iteration = -1,
         n_estimators = int(data['nEstimators']),

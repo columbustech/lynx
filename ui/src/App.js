@@ -79,6 +79,7 @@ class App extends React.Component {
         });
       }, err => {
         if (err.response.status === 401) {
+          cookies.remove('lynx_token'); 
           window.location.reload(false);
         } else if(err.response.status === 403) {
           this.setState({
