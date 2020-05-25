@@ -19,6 +19,7 @@ class SMJobManager:
         self.features_frame = None
         self.train = None
         self.model = None
+        self.seed_examples = None
     def profile(self):
         data = {
             'inputDir': self.input_dir,
@@ -78,23 +79,49 @@ class SMJobManager:
         }
         response = requests.post(url=blocker_url + 'save', data=json.dumps(data), headers={'Authorization': self.auth_header, 'content-type': 'application/json'})
         return True
+    def create_seed_examples(self):
+        res = requests.get('http://cdrive/download/?path=' + self.output_dir + '/output.csv', headers={'Authorization': self.auth_header})
+        self.profile_frame = pd.read_csv(res.json()['download_url'])
+        res = requests.get('http://cdrive/download/?path=' + self.output_dir + '/block.csv', headers={'Authorization': self.auth_header})
+        self.block_frame = pd.read_csv(res.json()['download_url'])
+        self.seed_examples = pd.DataFrame()
+        self.train = pd.DataFrame()
+        s_id = self.profile_frame.sample().get('id').item()
+        self.train = self.train.append({'id': len(self.block_frame) + 1, 'l_id': s_id, 'r_id': s_id, 'label': 1}, ignore_index=True)
+        self.seed_examples = self.seed_examples.append({'id': len(self.block_frame) + 1, 'l_id': s_id, 'r_id': s_id}, ignore_index=True)
+        s_id = self.profile_frame.sample().get('id').item()
+        self.train = self.train.append({'id': len(self.block_frame) + 2, 'l_id': s_id, 'r_id': s_id, 'label': 1}, ignore_index=True)
+        self.seed_examples = self.seed_examples.append({'id': len(self.block_frame) + 2, 'l_id': s_id, 'r_id': s_id}, ignore_index=True)
+        self.seed_examples = self.seed_examples.append({'id': len(self.block_frame) + 3, 'l_id': self.profile_frame.sample().get('id').item(), 'r_id': self.profile_frame.sample().get('id').item()}, ignore_index=True)
+        self.seed_examples = self.seed_examples.append({'id': len(self.block_frame) + 4, 'l_id': self.profile_frame.sample().get('id').item(), 'r_id': self.profile_frame.sample().get('id').item()}, ignore_index=True)
+        self.seed_examples = self.seed_examples.append({'id': len(self.block_frame) + 5, 'l_id': self.profile_frame.sample().get('id').item(), 'r_id': self.profile_frame.sample().get('id').item()}, ignore_index=True)
     def featurize(self):
+        sm_job = SMJob.objects.filter(uid=self.uid)[0]
+        sm_job.stage = "Featurizer"
+        sm_job.status = "Running"
+        sm_job.long_status = "Initializing"
+        sm_job.save()
+        featurizer_input = pd.DataFrame()
+        featurizer_input[['id', 'l_id', 'r_id']] = self.block_frame[['id', 'l_id', 'r_id']]
+        featurizer_input = featurizer_input.append(self.seed_examples, ignore_index=True)
+        featurizer_input = featurizer_input.astype(int)
+        featurizer_input.to_csv(settings.DATA_PATH + '/' + self.uid + '/featurizer-input.csv', index=False)
+        f = open(settings.DATA_PATH + '/' + self.uid + '/featurizer-input.csv','rb')
+        file_name = 'featurizer-input.csv'
+        file_arg = {'file': (file_name, f), 'path': (None, self.output_dir)}
+        requests.post('http://cdrive/upload/', files=file_arg, headers={'Authorization': self.auth_header})
+        f.close()
         featurizer_url = 'http://featurizer-' + os.environ['COLUMBUS_USERNAME'] + '/api/'
         data = {
             'aPath': self.output_dir + '/output.csv',
             'bPath': self.output_dir + '/output.csv',
-            'cPath': self.output_dir + '/block.csv',
+            'cPath': self.output_dir + '/featurizer-input.csv',
             'nC': self.featurizer_chunks,
             'containerUrl': self.featurizer_url,
             'replicas': self.featurizer_replicas
         }
         response = requests.post(url=featurizer_url + 'generate', data=json.dumps(data), headers={'Authorization': self.auth_header, 'content-type': 'application/json'})
         featurizer_id = response.json()['uid']
-        sm_job = SMJob.objects.filter(uid=self.uid)[0]
-        sm_job.stage = "Featurizer"
-        sm_job.status = "Running"
-        sm_job.long_status = "Initializing"
-        sm_job.save()
         attempts = 0
         while(True):
             res = requests.get(featurizer_url + 'status?uid=' + featurizer_id)
@@ -125,14 +152,8 @@ class SMJobManager:
         sm_job.status = "Running"
         sm_job.long_status = "Initializing"
         sm_job.save()
-        res = requests.get('http://cdrive/download/?path=' + self.output_dir + '/output.csv', headers={'Authorization': self.auth_header})
-        self.profile_frame = pd.read_csv(res.json()['download_url'])
-        res = requests.get('http://cdrive/download/?path=' + self.output_dir + '/block.csv', headers={'Authorization': self.auth_header})
-        self.block_frame = pd.read_csv(res.json()['download_url'])
         res = requests.get('http://cdrive/download/?path=' + self.output_dir + '/features.csv', headers={'Authorization': self.auth_header})
         self.features_frame = pd.read_csv(res.json()['download_url']).sort_values('id').reset_index(drop=True)
-        res = requests.get('http://cdrive/download/?path=' + self.seed_path, headers={'Authorization': self.auth_header})
-        self.train = pd.read_csv(res.json()['download_url'])
         truncated_profiles = self.profile_frame[['id', 'name', 'dataset', 'sample']]
         truncated_profiles.to_csv(settings.DATA_PATH + '/' + self.uid + '/truncated-profiles.csv', index=False)
         f = open(settings.DATA_PATH + '/' + self.uid + '/truncated-profiles.csv','rb')
@@ -140,15 +161,17 @@ class SMJobManager:
         file_arg = {'file': (file_name, f), 'path': (None, self.output_dir)}
         requests.post('http://cdrive/upload/', files=file_arg, headers={'Authorization': self.auth_header})
         f.close()
+        f = open('/options.json', 'rb')
+        file_arg = {'file': ('options.json', f), 'path': (None, self.output_dir)}
+        requests.post('http://cdrive/upload/', files=file_arg, headers={'Authorization': self.auth_header})
+        f.close()
+        self.create_labeling_task(self.seed_examples.tail(3))
     def run_iteration(self):
         self.current_iteration = self.current_iteration + 1
         sm_job = SMJob.objects.filter(uid=self.uid)[0]
         sm_job.stage = "Active Learning"
         sm_job.status = "Running"
-        if self.current_iteration == 0:
-            sm_job.long_status = "Initializing"
-        else:
-            sm_job.long_status = 'Iteration ' + str(self.current_iteration) + '/' + str(self.iterations) 
+        sm_job.long_status = 'Iteration ' + str(self.current_iteration) + '/' + str(self.iterations) 
         sm_job.iteration = self.current_iteration
         sm_job.save()
         self.train = self.train.sort_values('id').reset_index(drop=True)
@@ -158,7 +181,7 @@ class SMJobManager:
         y_train = self.train['label'].values.ravel() 
         self.model.fit(X_train, y_train)
         X_test = self.features_frame[~self.features_frame['id'].isin(self.train['id'])]
-        if ((self.current_iteration < self.iterations) and (len(X_test) > self.min_test_size)):
+        if ((self.current_iteration <= self.iterations) and (len(X_test) > self.min_test_size)):
             entropies = pd.DataFrame()
             entropies['id'] = X_test['id']
             del X_test['id']
@@ -174,16 +197,13 @@ class SMJobManager:
             sm_job.long_status = "Training Complete"
             sm_job.save()
     def create_labeling_task(self, examples):
+        examples = examples.astype(int)
         task_name = 'iteration-' + str(self.current_iteration) + '-' + self.uid
         file_name = task_name + '.csv'
         file_path = settings.DATA_PATH + '/' + self.uid + '/' + file_name
         examples.to_csv(file_path, index=False)
         f = open(file_path,'rb')
         file_arg = {'file': (file_name, f), 'path': (None, self.output_dir)}
-        requests.post('http://cdrive/upload/', files=file_arg, headers={'Authorization': self.auth_header})
-        f.close()
-        f = open('/options.json', 'rb')
-        file_arg = {'file': ('options.json', f), 'path': (None, self.output_dir)}
         requests.post('http://cdrive/upload/', files=file_arg, headers={'Authorization': self.auth_header})
         f.close()
         data = {
@@ -204,8 +224,10 @@ class SMJobManager:
         sm_job.labeling_url = os.environ['CDRIVE_URL'] + 'app/' + os.environ['COLUMBUS_USERNAME'] + '/labeler/example/' + task_name
         long_status = ""
         if self.current_iteration != 0:
-            long_status = "Iteration " + str(self.current_iteration) + " complete. "
-        sm_job.long_status = long_status + "Label examples for iteration " + str(self.current_iteration + 1)
+            long_status = "Iteration " + str(self.current_iteration - 1) + " complete. "
+            sm_job.long_status = long_status + "Label examples for iteration " + str(self.current_iteration)
+        else:
+            sm_job.long_status = "Label seed examples"
         sm_job.save()
     def complete_iteration(self): 
         sm_job = SMJob.objects.filter(uid=self.uid)[0]

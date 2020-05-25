@@ -88,7 +88,7 @@ class CreateJob extends React.Component {
                 {"..."}
               </button>
               <button className="btn btn-primary btn-lg execute-button" onClick={this.executeJob}>
-                Execute
+                Start
               </button>
             </div>
           </div>

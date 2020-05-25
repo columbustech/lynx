@@ -1,6 +1,8 @@
 import React from 'react';
 import Cookies from 'universal-cookie';
 import axios from 'axios';
+import CDrivePathSelector from './CDrivePathSelector';
+import { Link } from "react-router-dom";
 import './Lynx.css';
 
 class JobStatus extends React.Component{
@@ -8,7 +10,8 @@ class JobStatus extends React.Component{
     super(props);
     this.state = {
       job: null,
-      actionMessage: ""
+      actionMessage: "",
+      pathSelector: false
     };
     this.pollStatus = this.pollStatus.bind(this);
     this.saveModel = this.saveModel.bind(this);
@@ -81,27 +84,32 @@ class JobStatus extends React.Component{
           </a>
         );
         actions.push(
+          <button className="btn btn-secondary btn-lg blocker-btn" onClick={this.applyModel}>
+            Apply Model
+          </button>
+        );
+        actions.push(
           <button className="btn btn-secondary btn-lg blocker-btn" onClick={this.saveModel}>
             Save Model
           </button>
         );
+      } else if (this.state.job.status === "Complete") {
         actions.push(
-          <button className="btn btn-secondary btn-lg blocker-btn" onClick={this.applyModel}>
+          <button className="btn btn-primary btn-lg blocker-btn" onClick={this.applyModel}>
             Apply Model
           </button>
         );
-      } else if (this.state.job.status === "Complete") {
         actions.push(
-          <button className="btn btn-primary btn-lg blocker-btn" onClick={this.saveModel}>
+          <button className="btn btn-secondary btn-lg blocker-btn" onClick={this.saveModel}>
             Save Model
           </button>
         );
-        actions.push(
-          <button className="btn btn-secondary btn-lg blocker-btn" onClick={this.applyModel}>
-            Apply Model
-          </button>
-        );
       }
+      actions.push(
+        <Link className="btn btn-secondary btn-lg blocker-btn" to="/" >
+          Quit
+        </Link>
+      );
       let saveStatus;
       if (this.state.actionMessage !== "") {
         saveStatus = (
@@ -116,7 +124,7 @@ class JobStatus extends React.Component{
       return(
         <div className="app-container">
           <div className="app-header">
-            Job Name: {this.state.job.job_name}
+            Matching Status
           </div>
           <div className="input-div" style={{marginTop: 30}}>
             <span className="mx-2 h5 font-weight-normal">Stage: {this.state.job.stage}</span>

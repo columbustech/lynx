@@ -29,7 +29,7 @@ def execute_workflow(uid, token, data):
         featurizer_replicas = data['featurizerReplicas'],
         featurizer_chunks = data['featurizerChunks'],
         iterations = int(data['iterations']),
-        current_iteration = -1,
+        current_iteration = 0,
         n_estimators = int(data['nEstimators']),
         batch_size = int(data['batchSize']),
         min_test_size = int(data['minTestSize'])
@@ -37,9 +37,9 @@ def execute_workflow(uid, token, data):
     job_managers[uid] = jm
     jm.profile()
     jm.block()
+    jm.create_seed_examples()
     jm.featurize()
     jm.init_learner()
-    jm.run_iteration()
 
 def complete_iteration(uid):
     jm = job_managers[uid]
