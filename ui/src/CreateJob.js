@@ -3,7 +3,7 @@ import Cookies from 'universal-cookie';
 import axios from 'axios';
 import CDrivePathSelector from './CDrivePathSelector';
 import { Redirect } from 'react-router-dom';
-import './Lynx.css';
+import './CreateJob.css';
 
 class CreateJob extends React.Component {
   constructor(props) {
@@ -50,7 +50,10 @@ class CreateJob extends React.Component {
     const request = axios({
       method: 'POST',
       url: `${this.props.specs.appUrl}api/execute-workflow/`,
-      data: this.props.config,
+      data: {
+        ...this.props.config,
+        lakePath: this.state.lakePath
+      },
       headers: {
         'Authorization': `Bearer ${cookies.get('lynx_token')}`,
       }
@@ -68,8 +71,15 @@ class CreateJob extends React.Component {
     } else {
       return(
         <div className="app-page">
-          <div className="app-header">
-            {this.props.config.title ? this.props.config.title : "Lynx 1.0: End-to-End Semantic Matching"}
+          <div className="create-job-header">
+            <div className="create-job-header-menu">
+              <button className="btn menu-btn" onClick={this.props.editConfig} >
+                Edit Config
+              </button>
+            </div>
+            <div className="create-job-header-text">
+              {this.props.config.title ? this.props.config.title : "Lynx 1.0: End-to-End Semantic Matching"}
+            </div>
           </div>
           <div className="create-job-container">
             <div className="create-job">

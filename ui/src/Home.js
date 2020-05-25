@@ -16,31 +16,34 @@ class Home extends React.Component {
     if (Object.keys(this.props.config).length === 0) {
       this.setState({
         pageReady: true,
-        component: (
-          <EditConfig 
-            specs={this.props.specs} 
-            config={this.props.config} 
-            updateConfig={config => this.setState({
-              config: config, component: <CreateJob specs={this.props.specs} config={config} />
-            })} 
-            cancelUpdate={() => this.setState({
-              component: <CreateJob specs={this.props.specs} config={this.state.config} />
-            })} 
-          />
-        ),
+        component: EditConfig,
         config: this.props.config
       });
     } else {
       this.setState({
         pageReady: true,
-        component: <CreateJob specs={this.props.specs} config={this.props.config} />,
+        component: CreateJob, 
         config: this.props.config
       });
     }
   }
   render() {
     if (this.state.pageReady) {
-      return this.state.component;
+      return (
+        <this.state.component 
+          specs={this.props.specs} 
+          config={this.state.config} 
+          updateConfig={config => this.setState({
+            config: config, component: CreateJob
+          })} 
+          cancelUpdate={() => this.setState({
+            component: CreateJob
+          })}
+          editConfig={() => this.setState({
+            component: EditConfig
+          })}
+        />
+      );
     } else {
       return (null);
     }

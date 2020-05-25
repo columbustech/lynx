@@ -30,7 +30,7 @@ class EditConfig extends React.Component {
     this.importConfig = this.importConfig.bind(this);
   }
   componentDidMount() {
-    this.setState({config: this.props.config});
+    this.setState(this.props.config);
     this.getDriveObjects();
   }
   getDriveObjects() {

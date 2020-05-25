@@ -17,7 +17,7 @@ class JobStatus extends React.Component{
   pollStatus() {
     const request = axios({
       method: 'GET',
-      url: `${this.props.specs.cdriveUrl}app/${this.props.specs.username}/lynx/api/status/?uid=${this.props.uid}`
+      url: `${this.props.specs.cdriveUrl}app/${this.props.specs.username}/lynx/api/status/?uid=${this.props.match.params.uid}`
     });
     request.then(
       response => {
@@ -102,11 +102,6 @@ class JobStatus extends React.Component{
           </button>
         );
       }
-      actions.push(
-        <a className="btn btn-secondary btn-lg blocker-btn" href={`${this.props.specs.cdriveUrl}app/${this.props.specs.username}/lynx/`}>
-          Home
-        </a>
-      );
       let saveStatus;
       if (this.state.actionMessage !== "") {
         saveStatus = (

@@ -119,8 +119,6 @@ class SMJobManager:
         }
         response = requests.post(url=featurizer_url + 'save', data=json.dumps(data), headers={'Authorization': self.auth_header, 'content-type': 'application/json'})
         return True
-    def generate_seed_rankings(self):
-        pass
     def init_learner(self):
         sm_job = SMJob.objects.filter(uid=self.uid)[0]
         sm_job.stage = "Active Learning"
