@@ -187,10 +187,10 @@ class SMJobManager:
             del X_test['id']
             probabilities = self.model.predict_proba(X_test)
             entropies['prob_0'] = probabilities[:,0]
-            entropies["prob_1"] = probabilities[:,1]
-            entropies["entropy"] = entropies.apply(lambda en: calculate_entropy(en.get("prob_0").item(), en.get("prob_1").item()), axis=1)
+            entropies['prob_1'] = probabilities[:,1]
+            entropies['entropy'] = entropies.apply(lambda en: calculate_entropy(en.get("prob_0").item(), en.get("prob_1").item()), axis=1)
             new_examples = pd.DataFrame()
-            new_examples[["id", "l_id", "r_id"]] = self.block_frame[self.block_frame["id"].isin(entropies.sort_values("entropy", ascending=False).head(self.batch_size)["id"])]
+            new_examples[['id', 'l_id', 'r_id']] = self.block_frame[self.block_frame["id"].isin(entropies.sort_values("entropy", ascending=False).head(self.batch_size)["id"])][['id', 'l_id', 'r_id']]
             self.create_labeling_task(new_examples)
         else:
             sm_job.status = "Complete"
