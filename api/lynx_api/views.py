@@ -136,7 +136,8 @@ class SaveModel(APIView):
 
     def post(self, request):
         uid = request.data['uid']
-        save_model(uid)
+        path = request.data['path']
+        save_model(uid, path)
         return Response(status=status.HTTP_200_OK)
 
 class ApplyModel(APIView):
@@ -144,7 +145,8 @@ class ApplyModel(APIView):
 
     def post(self, request):
         uid = request.data['uid']
-        apply_model(uid)
+        path = request.data['path']
+        apply_model(uid, path)
         return Response(status=status.HTTP_200_OK)
 
 class DeleteJob(APIView):

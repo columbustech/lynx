@@ -11,11 +11,42 @@ class JobStatus extends React.Component{
     this.state = {
       job: null,
       actionMessage: "",
-      pathSelector: false
+      pathSelector: false,
+      pathSelectAction: null,
+      driveObjects: []
     };
     this.pollStatus = this.pollStatus.bind(this);
     this.saveModel = this.saveModel.bind(this);
     this.applyModel = this.applyModel.bind(this);
+    this.getDriveObjects = this.getDriveObjects.bind(this);
+  }
+  componentDidMount() {
+    this.getDriveObjects();
+  }
+  getDriveObjects() {
+    if(!this.props.specs) {
+      return(null);
+    }
+    const cookies = new Cookies();
+    var auth_header = 'Bearer ' + cookies.get('lynx_token');
+    const request = axios({
+      method: 'GET',
+      url: this.props.specs.cdriveApiUrl + "list-recursive/?path=users",
+      headers: {'Authorization': auth_header}
+    });
+    request.then(
+      response => {
+        this.setState({
+          driveObjects: response.data.driveObjects,
+        });
+      }, err => {
+        if(err.response.status === 401) {
+          cookies.remove('lynx_token');
+          window.location.reload(false);
+        } else {
+        }
+      }
+    ); 
   }
   pollStatus() {
     const request = axios({
@@ -33,13 +64,14 @@ class JobStatus extends React.Component{
       },
     );
   }
-  saveModel() {
+  saveModel(path) {
     const cookies = new Cookies();
     const request = axios({
       method: 'POST',
       url: `${this.props.specs.cdriveUrl}/app/${this.props.specs.username}/lynx/api/save-model/`,
       data: {
         uid: this.state.job.uid,
+        path: path
       },
       headers: {
         'Authorization': `Bearer ${cookies.get('lynx_token')}`,
@@ -47,18 +79,19 @@ class JobStatus extends React.Component{
     });
     request.then(
       response => {
-        this.setState({actionMessage: "Model saved to CDrive output path!"});
+        this.setState({actionMessage: "Learning Model saved to CDrive!"});
       },
     );
 
   }
-  applyModel() {
+  applyModel(path) {
     const cookies = new Cookies();
     const request = axios({
       method: 'POST',
       url: `${this.props.specs.cdriveUrl}/app/${this.props.specs.username}/lynx/api/apply-model/`,
       data: {
         uid: this.state.job.uid,
+        path: path
       },
       headers: {
         'Authorization': `Bearer ${cookies.get('lynx_token')}`,
@@ -66,7 +99,7 @@ class JobStatus extends React.Component{
     });
     request.then(
       response => {
-        this.setState({actionMessage: "Predictions for blocker output saved to CDrive output folder as predictions.csv"});
+        this.setState({actionMessage: "Predictions saved to CDrive!"});
       },
     );
   }
@@ -77,30 +110,37 @@ class JobStatus extends React.Component{
     } else {
       let actions;
       actions = [];
-      if(this.state.job.status === "Ready") {
+      if(this.state.job.long_status === "Label seed examples") {
+        actions.push(
+          <a className="btn btn-primary btn-lg blocker-btn" href={this.state.job.labeling_url}>
+            Start Labeling
+          </a>
+        );
+      }
+      else if(this.state.job.status === "Ready") {
         actions.push(
           <a className="btn btn-primary btn-lg blocker-btn" href={this.state.job.labeling_url}>
             Start Labeling
           </a>
         );
         actions.push(
-          <button className="btn btn-secondary btn-lg blocker-btn" onClick={this.applyModel}>
+          <button className="btn btn-secondary btn-lg blocker-btn" onClick={() => this.setState({pathSelector: true, pathSelectAction: this.applyModel})} >
             Apply Model
           </button>
         );
         actions.push(
-          <button className="btn btn-secondary btn-lg blocker-btn" onClick={this.saveModel}>
+          <button className="btn btn-secondary btn-lg blocker-btn" onClick={() => this.setState({pathSelector: true, pathSelectAction: this.saveModel})}>
             Save Model
           </button>
         );
       } else if (this.state.job.status === "Complete") {
         actions.push(
-          <button className="btn btn-primary btn-lg blocker-btn" onClick={this.applyModel}>
+          <button className="btn btn-primary btn-lg blocker-btn" onClick={() => this.setState({pathSelector: true, pathSelectAction: this.applyModel})} >
             Apply Model
           </button>
         );
         actions.push(
-          <button className="btn btn-secondary btn-lg blocker-btn" onClick={this.saveModel}>
+          <button className="btn btn-secondary btn-lg blocker-btn" onClick={() => this.setState({pathSelector: true, pathSelectAction: this.saveModel})}>
             Save Model
           </button>
         );
@@ -121,6 +161,14 @@ class JobStatus extends React.Component{
           </div>
         );
       }
+      let cdrivePathSelector;
+      if (this.state.pathSelector) {
+        cdrivePathSelector = (
+          <CDrivePathSelector show={this.state.pathSelector} toggle={() => this.setState({pathSelector: false})} 
+            action={path => this.state.pathSelectAction(path)} title="Select CDrive Location" 
+            actionName="Select this folder" driveObjects={this.state.driveObjects} type="folder" />
+        );
+      }
       return(
         <div className="app-container">
           <div className="app-header">
@@ -136,6 +184,7 @@ class JobStatus extends React.Component{
             {actions}
           </div>
           {saveStatus}
+          {cdrivePathSelector}
         </div>
       );
     }

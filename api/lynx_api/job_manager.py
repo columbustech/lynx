@@ -224,7 +224,7 @@ class SMJobManager:
         sm_job.labeling_url = os.environ['CDRIVE_URL'] + 'app/' + os.environ['COLUMBUS_USERNAME'] + '/labeler/example/' + task_name
         long_status = ""
         if self.current_iteration != 0:
-            long_status = "Iteration " + str(self.current_iteration - 1) + " complete. "
+            long_status = str(self.current_iteration - 1) + '/' + str(self.iterations) + ' iterations complete. '
             sm_job.long_status = long_status + "Label examples for iteration " + str(self.current_iteration)
         else:
             sm_job.long_status = "Label seed examples"
@@ -242,23 +242,24 @@ class SMJobManager:
         self.train = pd.concat([self.train, new_examples])
         self.run_iteration()
         return os.environ['CDRIVE_URL'] + 'app/' + os.environ['COLUMBUS_USERNAME'] + '/lynx/job/' + self.uid
-    def save_model(self):
+    def save_model(self, path):
         file_name = 'iteration-' + str(self.current_iteration) + '-model.joblib'
         joblib.dump(self.model, settings.DATA_PATH + '/' + self.uid + '/' + file_name) 
-    def upload_model(self):
-        file_name = 'iteration-' + str(self.current_iteration) + '-model.joblib'
         f = open(settings.DATA_PATH + '/' + self.uid + '/' + file_name, 'rb')
-        file_arg = {'file': (file_name, f), 'path': (None, self.output_dir)}
+        file_arg = {'file': (file_name, f), 'path': (None, path)}
         requests.post('http://cdrive/upload/', files=file_arg, headers={'Authorization': self.auth_header})
-    def apply_model(self):
-        X_test = self.features_frame
+    def apply_model(self, path):
+        X_test = self.features_frame[:-5]
         del X_test['id']
-        predictions = pd.DataFrame()
-        predictions[['id', 'l_id', 'r_id']] = self.block_frame
+        predictions = self.block_frame.copy()
         predictions['label'] = self.model.predict(X_test)
-        file_name = 'predictions.csv'
+        predictions = predictions[predictions['label'] == 1]
+        del predictions['label']
+        del predictions['id']
+        predictions.insert(0, 'id', range(1, 1 + len(predictions)))
+        file_name = 'matches.csv'
         file_path = settings.DATA_PATH + '/' + self.uid + '/' + file_name
         predictions.to_csv(file_path, index=False)
         f = open(file_path, 'rb')
-        file_arg = {'file': (file_name, f), 'path': (None, self.output_dir)}
+        file_arg = {'file': (file_name, f), 'path': (None, path)}
         requests.post('http://cdrive/upload/', files=file_arg, headers={'Authorization': self.auth_header})

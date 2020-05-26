@@ -45,11 +45,10 @@ def complete_iteration(uid):
     jm = job_managers[uid]
     return jm.complete_iteration()
 
-def save_model(uid):
+def save_model(uid, path):
     jm = job_managers[uid]
-    jm.save_model()
-    jm.upload_model()
+    jm.save_model(path)
 
-def apply_model(uid):
+def apply_model(uid, path):
     jm = job_managers[uid]
-    jm.apply_model()
+    jm.apply_model(path)
