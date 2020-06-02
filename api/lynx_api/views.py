@@ -80,16 +80,17 @@ class SaveConfig(APIView):
         auth_header = request.META['HTTP_AUTHORIZATION']
         token = auth_header.split()[1]
         config_string = request.data['config']
+        config_name = request.data['configName']
         client = None
         try:
             client = py_cdrive_api.CDriveClient(access_token=token)
-            client.delete('users/' + os.environ['COLUMBUS_USERNAME'] + '/apps/lynx/default_config.json')
+            client.delete('users/' + os.environ['COLUMBUS_USERNAME'] + '/apps/lynx/' + config_name)
         except py_cdrive_api.UnauthorizedAccessException as e:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
         except py_cdrive_api.ForbiddenAccessException as e:
             pass
 
-        client.upload(cdrive_path='users/' + os.environ['COLUMBUS_USERNAME'] + '/apps/lynx', content=config_string, file_name='default_config.json')
+        client.upload(cdrive_path='users/' + os.environ['COLUMBUS_USERNAME'] + '/apps/lynx', content=config_string, file_name=config_name)
         return Response(status=status.HTTP_200_OK)
 
 class ExecuteWorkflow(APIView):

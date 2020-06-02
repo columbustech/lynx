@@ -24,7 +24,6 @@ class App extends React.Component {
     const cookies = new Cookies();
     var accessToken = cookies.get('lynx_token');
     if (accessToken !== undefined) {
-      //this.setState({isLoggedIn: true});
       this.getConfig();
       return;
     }

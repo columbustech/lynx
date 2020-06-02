@@ -9,7 +9,8 @@ class Home extends React.Component {
     this.state = {
       component: null,
       pageReady: false,
-      config: {}
+      config: {},
+      configName: ""
     };
   }
   componentDidMount() {
@@ -17,13 +18,15 @@ class Home extends React.Component {
       this.setState({
         pageReady: true,
         component: EditConfig,
-        config: this.props.config
+        config: this.props.config,
+        configName: "",
       });
     } else {
       this.setState({
         pageReady: true,
         component: CreateJob, 
-        config: this.props.config
+        config: this.props.config,
+        configName: "default_config.json"
       });
     }
   }
@@ -33,8 +36,11 @@ class Home extends React.Component {
         <this.state.component 
           specs={this.props.specs} 
           config={this.state.config} 
-          updateConfig={config => this.setState({
-            config: config, component: CreateJob
+          configName={this.state.configName}
+          updateConfig={(config, configName) => this.setState({
+            component: CreateJob,
+            config: config,
+            configName: configName
           })} 
           cancelUpdate={() => this.setState({
             component: CreateJob

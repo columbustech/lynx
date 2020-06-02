@@ -3,15 +3,17 @@ import Cookies from 'universal-cookie';
 import axios from 'axios';
 import CDrivePathSelector from './CDrivePathSelector';
 import { Redirect } from 'react-router-dom';
-import './CreateJob.css';
+import './Lynx.css';
 
 class CreateJob extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
       driveObjects: [],
-      lakePath: "",
-      lakePathSelector: false,
+      inputPath: "",
+      outputPath: "",
+      inputPathSelector: false,
+      outputPathSelector: false,
       uid: ""
     };
     this.getDriveObjects = this.getDriveObjects.bind(this);
@@ -52,7 +54,8 @@ class CreateJob extends React.Component {
       url: `${this.props.specs.appUrl}api/execute-workflow/`,
       data: {
         ...this.props.config,
-        lakePath: this.state.lakePath
+        inputPath: this.state.inputPath,
+        outputPath: this.state.outputPath
       },
       headers: {
         'Authorization': `Bearer ${cookies.get('lynx_token')}`,
@@ -69,32 +72,72 @@ class CreateJob extends React.Component {
     if (this.state.uid !== "") {
       return <Redirect to={`/job/${this.state.uid}/`} />
     } else {
+      let menuButtons = [];
+      menuButtons.push(
+        <button className="btn app-menu-btn" onClick={this.props.editConfig} >
+          Edit Config
+        </button>
+      );
+      menuButtons.push(
+        <button className="btn app-menu-btn">
+          Manual Mode
+        </button>
+      );
+      menuButtons.push(
+        <a href={this.props.specs.cdriveUrl} className="btn app-menu-btn">
+          Quit
+        </a>
+      );
       return(
         <div className="app-page">
-          <div className="create-job-header">
-            <div className="create-job-header-menu">
-              <button className="btn menu-btn" onClick={this.props.editConfig} >
-                Edit Config
-              </button>
+          <div className="app-header">
+            <div className="app-menu">
+              {menuButtons}
             </div>
-            <div className="create-job-header-text">
-              {this.props.config.title ? this.props.config.title : "Lynx 1.0: End-to-End Semantic Matching"}
+            <div className="app-header-title">
+              {"Lynx 1.0: End-to-End Semantic Matching"}
             </div>
           </div>
-          <div className="create-job-container">
-            <div className="create-job">
-              <input type="text" className="create-text-input" placeholder="Path to Data Lake" value={this.state.lakePath} onChange={e => this.setState({lakePath: e.target.value})} />
-              <button className="btn btn-light btn-lg browse-button" onClick={() => this.setState({lakePathSelector: true})}>
-                {"..."}
-              </button>
-              <button className="btn btn-primary btn-lg execute-button" onClick={this.executeJob}>
-                Start
-              </button>
+          <div className="app-body">
+            <div className="app-content">
+              <div className="app-message">
+                {`Lynx has been customized for ${this.props.config.taskType} using config file ${this.props.configName}`}
+              </div>
+              <table className="mx-auto">
+                <tr>
+                  <td>
+                    <input type="text" className="cdrive-path-input my-3 px-3" placeholder="Select Input Path" value={this.state.inputPath} onChange={e => this.setState({inputPath: e.target.value})} />
+                    <button className="browse-button my-3" onClick={() => this.setState({inputPathSelector: true})}>
+                      {"..."}
+                    </button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <input type="text" className="cdrive-path-input my-3 px-3" placeholder="Select Output Path" value={this.state.outputPath} onChange={e => this.setState({outputPath: e.target.value})} />
+                    <button className="browse-button my-3" onClick={() => this.setState({outputPathSelector: true})}>
+                      {"..."}
+                    </button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div className="w-100 my-4 text-center">
+                      <button className="btn btn-primary btn-lg btn-block" onClick={this.executeJob}>
+                        Start
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+              <CDrivePathSelector show={this.state.inputPathSelector} toggle={() => this.setState({inputPathSelector : false})}
+                action={path => this.setState({inputPath: path})} title="Select Input Folder"  actionName="Select this folder"
+                driveObjects={this.state.driveObjects} type="folder" />
+              <CDrivePathSelector show={this.state.outputPathSelector} toggle={() => this.setState({outputPathSelector : false})}
+                action={path => this.setState({outputPath: path})} title="Select Input Folder"  actionName="Select this folder"
+                driveObjects={this.state.driveObjects} type="folder" />
             </div>
           </div>
-          <CDrivePathSelector show={this.state.lakePathSelector} toggle={() => this.setState({lakePathSelector : false})}
-            action={path => this.setState({lakePath: path})} title="Select Data Lake Folder"  actionName="Select this folder"
-            driveObjects={this.state.driveObjects} type="folder" />
         </div>
       );
     }

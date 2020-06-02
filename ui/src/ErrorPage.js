@@ -1,16 +1,23 @@
 import React from 'react';
+import './Lynx.css'; 
 
 class ErrorPage extends React.Component{
   render() {
     return(
-      <div className="app-container">
-        <div className="app-header">An Error occured</div>
-        <div className="error-container">
-          <div className="app-message">
-            {`Lynx needs to have edit permission on users/${this.props.specs.username}/apps/lynx folder. Restart Lynx app after creating the lynx folder in CDrive and providing edit permission on it.`}
+      <div className="app-page">
+        <div className="app-header">
+          <div className="app-header-title">
+            {"Lynx 1.0: End-to-End Semantic Matching"}
           </div>
-          <div className="text-center">
-            <a href={this.props.specs.cdriveUrl} className="btn btn-primary btn-lg">Go back to CDrive</a>
+        </div>
+        <div className="app-body">
+          <div className="app-content">
+            <div className="app-message">
+              {`Lynx needs to have edit permission on users/${this.props.specs.username}/apps/lynx folder. Restart Lynx app after creating this folder in CDrive (if it does not exist) and providing edit permission on it.`}
+            </div>
+            <div className="text-center">
+              <a href={this.props.specs.cdriveUrl} className="btn btn-primary btn-lg">Go back to CDrive</a>
+            </div>
           </div>
         </div>
       </div>

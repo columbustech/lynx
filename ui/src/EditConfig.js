@@ -9,8 +9,11 @@ class EditConfig extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
+      taskType: "",
       learnerInputs: false,
+      configName: "",
       configSelector: false,
+      configNameInput: false,
       profilerUrl: "",
       profilerReplicas: "",
       blockerUrl: "",
@@ -30,7 +33,11 @@ class EditConfig extends React.Component {
     this.importConfig = this.importConfig.bind(this);
   }
   componentDidMount() {
-    this.setState(this.props.config);
+    var newState = {
+      ...this.props.config,
+      configName: this.props.configName
+    };
+    this.setState(newState);
     this.getDriveObjects();
   }
   getDriveObjects() {
@@ -60,6 +67,7 @@ class EditConfig extends React.Component {
   }
   saveConfig() {
     var config = {
+      taskType: this.state.taskType,
       profilerUrl: this.state.profilerUrl,
       profilerReplicas: this.state.profilerReplicas,
       blockerUrl: this.state.blockerUrl,
@@ -78,12 +86,15 @@ class EditConfig extends React.Component {
     const request = axios({
       method: 'POST',
       url: `${this.props.specs.appUrl}api/save-config/`,
-      data: {config: JSON.stringify(config, undefined, 4)},
+      data: {
+        config: JSON.stringify(config, undefined, 4),
+        configName: this.state.configName
+      },
       headers: {'Authorization': auth_header}
     });
     request.then(
       response => {
-        this.props.updateConfig(config);
+        this.props.updateConfig(config, this.state.configName);
       },
     );
   }
@@ -104,7 +115,9 @@ class EditConfig extends React.Component {
         });
         req.then(
           res => {
-            this.setState(res.data);
+            var newState = res.data;
+            newState['configName'] = path.substring(path.lastIndexOf("/") + 1)
+            this.setState(newState);
           },
         );
       },
@@ -113,15 +126,23 @@ class EditConfig extends React.Component {
   render() {
     let saveButton, cancelButton;
     saveButton = (
-      <button className="btn btn-lg btn-primary blocker-btn" onClick={this.saveConfig}>
+      <button className="btn btn-lg btn-primary mx-3" onClick={() => this.setState({configNameInput: true})} >
         Save Config
       </button>
     );
-    cancelButton = (
-      <button className="btn btn-lg btn-secondary blocker-btn" onClick={this.props.cancelUpdate}>
-        Cancel
-      </button>
-    );
+    if (Object.keys(this.props.config).length === 0) {
+      cancelButton = (
+        <button className="btn btn-lg btn-secondary mx-3" disabled>
+          Cancel
+        </button>
+      );
+    } else {
+      cancelButton = (
+        <button className="btn btn-lg btn-secondary mx-3" onClick={this.props.cancelUpdate}>
+          Cancel
+        </button>
+      );
+    }
     let learnerInputsModal;
     learnerInputsModal = (
       <Modal show={this.state.learnerInputs} onHide={() => this.setState({learnerInputs: false})}>
@@ -171,107 +192,158 @@ class EditConfig extends React.Component {
         </Modal.Footer>
       </Modal>
     );
-    
+    let configNameModal;
+    configNameModal = (
+      <Modal show={this.state.configNameInput} onHide={() => this.setState({configNameInput:false})}>
+        <Modal.Header closeButton>
+          <Modal.Title>Enter Config File Name</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <div style={{ marginTop: "10px" }} className="form-group">
+            <input type="text"  className="form-control" value={this.state.configName}
+              onChange={e => this.setState({configName: e.target.value})} />
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="primary" onClick={this.saveConfig}>
+            Save Config 
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    );
+    let menuButtons = [];
+    menuButtons.push(
+      <button className="btn app-menu-btn">
+        Manual Mode
+      </button>
+    );
+    menuButtons.push(
+      <a href={this.props.specs.cdriveUrl} className="btn app-menu-btn">
+        Quit
+      </a>
+    );
+
     return(
-      <div className="edit-config-container">
-        <div className="edit-config">
-          <div>
-            <span className="m-3 h5">Import Config:</span>
-            <button className="btn btn-secondary" onClick={() => this.setState({configSelector: true})}>
-              Browse
-            </button>
+      <div className="app-page">
+        <div className="app-header">
+          <div className="app-menu">
+            {menuButtons}
           </div>
-          <div className="app-header">
-            OR
+          <div className="app-header-title">
+            {"Lynx 1.0: End-to-End Semantic Matching"}
           </div>
-          <div className="mb-4">
-            <span className="m-3 h5">Specify config through UI:</span>
-          </div>
-          <table>
-            <tr>
-              <td>
-                <span className="m-3">Profiler:</span>
-              </td>
-              <td>
-                <input type="text" placeholder="Container URL" value={this.state.profilerUrl} className="p-2 m-3 cdrive-input-item"
-                  onChange={e => this.setState({profilerUrl: e.target.value})} />
-              </td>
-              <td>
-                <span className="m-3">No of Replicas:</span>
-              </td>
-              <td>
-                <input type="text" value={this.state.profilerReplicas} className="p-1 m-3 number-input"
-                  onChange={e => this.setState({profilerReplicas: e.target.value})} />
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <span className="m-3">Blocker:</span>
-              </td>
-              <td>
-                <input type="text" placeholder="Container URL" value={this.state.blockerUrl} className="p-2 m-3 cdrive-input-item"
-                  onChange={e => this.setState({blockerUrl: e.target.value})} />
-              </td>
-              <td>
-                <span className="m-3">No of Replicas:</span>
-              </td>
-              <td>
-                <input type="text" value={this.state.blockerReplicas} className="p-1 m-3 number-input"
-                  onChange={e => this.setState({blockerReplicas: e.target.value})} />
-              </td>
-              <td>
-                <span className="m-3">Input Chunks:</span>
-              </td>
-              <td>
-                <input type="text" value={this.state.blockerChunks} className="p-1 m-3 number-input" onChange={e => this.setState({blockerChunks: e.target.value})} />
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <span className="m-3">Featurizer:</span>
-              </td>
-              <td>
-                <input type="text" placeholder="Container URL" value={this.state.featurizerUrl} className="p-2 m-3 cdrive-input-item"
-                  onChange={e => this.setState({featurizerUrl: e.target.value})} />
-              </td>
-              <td>
-                <span className="m-3">No of Replicas:</span>
-              </td>
-              <td>
-                <input type="text" value={this.state.featurizerReplicas} className="p-1 m-3 number-input"
-                  onChange={e => this.setState({featurizerReplicas: e.target.value})} />
-              </td>
-              <td>
-                <span className="m-3">Input Chunks:</span>
-              </td>
-              <td>
-                <input type="text" value={this.state.featurizerChunks} className="p-1 m-3 number-input" onChange={e => this.setState({featurizerChunks: e.target.value})} />
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <span className="m-3">Learner:</span>
-              </td>
-              <td>
-                <button className="btn btn-secondary m-3" onClick={() => this.setState({learnerInputs: true})}>
-                  Configure
-                </button>
-              </td>
-            </tr>
-            <tr>
-              <td colSpan={6}>
-                <div className="input-div text-center">
-                  {saveButton}
-                  {cancelButton}
-                </div>
-              </td>
-            </tr>
-          </table>
         </div>
-        {learnerInputsModal}
-        <CDrivePathSelector show={this.state.configSelector} toggle={() => this.setState({configSelector: false})}
-        action={path => this.importConfig(path)} title="Select Config File"  actionName="Select"
-        driveObjects={this.state.driveObjects} type="file" />
+        <div className="app-body">
+          <div className="app-content">
+            <div className="mt-4">
+              <span className="mx-3 h5">Import Config:</span>
+              <button className="btn btn-secondary" onClick={() => this.setState({configSelector: true})}>
+                Browse
+              </button>
+              <span className="mx-3">{this.state.configName}</span>
+            </div>
+            <div className="my-3 h4 text-center">
+              OR
+            </div>
+            <div className="my-3">
+              <span className="mx-3 h5">Specify config through UI:</span>
+            </div>
+            <table>
+              <tr>
+                <td>
+                  <span className="mx-3">Task Type:</span>
+                </td>
+                <td>
+                  <input type="text" placeholder="Task Type" value={this.state.taskType} className="p-2 mx-3 my-2"
+                    onChange={e => this.setState({taskType: e.target.value})} />
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <span className="mx-3">Profiler:</span>
+                </td>
+                <td>
+                  <input type="text" placeholder="Container URL" value={this.state.profilerUrl} className="p-2 mx-3 my-2"
+                    onChange={e => this.setState({profilerUrl: e.target.value})} />
+                </td>
+                <td>
+                  <span className="mx-3">No of Replicas:</span>
+                </td>
+                <td>
+                  <input type="text" value={this.state.profilerReplicas} className="p-1 mx-3 my-2 number-input"
+                    onChange={e => this.setState({profilerReplicas: e.target.value})} />
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <span className="mx-3">Blocker:</span>
+                </td>
+                <td>
+                  <input type="text" placeholder="Container URL" value={this.state.blockerUrl} className="p-2 mx-3 my-2"
+                    onChange={e => this.setState({blockerUrl: e.target.value})} />
+                </td>
+                <td>
+                  <span className="mx-3">No of Replicas:</span>
+                </td>
+                <td>
+                  <input type="text" value={this.state.blockerReplicas} className="p-1 mx-3 my-2 number-input"
+                    onChange={e => this.setState({blockerReplicas: e.target.value})} />
+                </td>
+                <td>
+                  <span className="mx-3">Input Chunks:</span>
+                </td>
+                <td>
+                  <input type="text" value={this.state.blockerChunks} className="p-1 mx-3 my-2 number-input" onChange={e => this.setState({blockerChunks: e.target.value})} />
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <span className="mx-3">Featurizer:</span>
+                </td>
+                <td>
+                  <input type="text" placeholder="Container URL" value={this.state.featurizerUrl} className="p-2 mx-3 my-2"
+                    onChange={e => this.setState({featurizerUrl: e.target.value})} />
+                </td>
+                <td>
+                  <span className="mx-3">No of Replicas:</span>
+                </td>
+                <td>
+                  <input type="text" value={this.state.featurizerReplicas} className="p-1 mx-3 my-2 number-input"
+                    onChange={e => this.setState({featurizerReplicas: e.target.value})} />
+                </td>
+                <td>
+                  <span className="mx-3">Input Chunks:</span>
+                </td>
+                <td>
+                  <input type="text" value={this.state.featurizerChunks} className="p-1 mx-3 my-2 number-input" onChange={e => this.setState({featurizerChunks: e.target.value})} />
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <span className="mx-3">Learner:</span>
+                </td>
+                <td>
+                  <button className="btn btn-secondary mx-3 my-2" onClick={() => this.setState({learnerInputs: true})}>
+                    Configure
+                  </button>
+                </td>
+              </tr>
+              <tr>
+                <td colSpan={6}>
+                  <div className="w-100 my-4 text-center">
+                    {saveButton}
+                    {cancelButton}
+                  </div>
+                </td>
+              </tr>
+            </table>
+            {learnerInputsModal}
+            {configNameModal}
+            <CDrivePathSelector show={this.state.configSelector} toggle={() => this.setState({configSelector: false})}
+              action={path => this.importConfig(path)} title="Select Config File"  actionName="Select"
+              driveObjects={this.state.driveObjects} type="file" />
+          </div>
+        </div>
       </div>
     );
   }
