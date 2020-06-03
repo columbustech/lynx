@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 import joblib
+import py_cdrive_api
 
 def calculate_entropy(p1, p2):
     log_p1 = 0 if p1 == 0 else np.log2(p1)
@@ -20,10 +21,17 @@ class SMJobManager:
         self.train = None
         self.model = None
         self.seed_examples = None
+        self.access_token = self.auth_header.split()[1]
     def profile(self):
+        client = py_cdrive_api.Client(access_token=self.access_token)
+        try:
+            client.delete(self.output_dir + '/profiler')
+        except py_cdrive_api.ForbiddenAccessException as e:
+            pass
+        client.create_folder(self.output_dir, 'profiler')
         data = {
             'inputDir': self.input_dir,
-            'outputDir': self.output_dir,
+            'outputDir': self.output_dir + '/profiler',
             'containerUrl': self.profiler_url,
             'replicas': self.profiler_replicas
         }
@@ -35,22 +43,37 @@ class SMJobManager:
             res = requests.get(url=profiler_base_url + 'status?uid=' + profiler_id)
             status = res.json()['fnStatus']
             if status == 'complete':
+                profile_url = client.file_url(self.output_dir + '/profiler/output.csv')
+                self.profile_frame = pd.read_csv(profile_url)
                 return True
             elif status == 'executing':
                 if sm_job.long_status != status :
+                    sm_job.status = 'Running'
                     sm_job.long_status = status
                     sm_job.save()
+            elif status == 'error':
+                sm_job.status = 'Error'
+                sm_job.long_status = res.json()['message']
+                sm_job.save()
+                return False
                 
             #elif status == 'running':
             #    if sm_job.long_status != res.json()['fnMessage'] :
             #        sm_job.long_status = res.json()['fnMessage']
             #   sm_job.save()
     def block(self):
+        client = py_cdrive_api.Client(access_token=self.access_token)
+        try:
+            client.delete(self.output_dir + '/blocker')
+        except py_cdrive_api.ForbiddenAccessException as e:
+            pass 
+        client.create_folder(self.output_dir, 'blocker')
+        
         blocker_url = 'http://blocker-' + os.environ['COLUMBUS_USERNAME'] + '/api/'
         data = {
-            'aPath': self.output_dir + '/output.csv',
+            'aPath': self.output_dir + '/profiler/output.csv',
             'nA': self.blocker_chunks,
-            'bPath': self.output_dir + '/output.csv',
+            'bPath': self.output_dir + '/profiler/output.csv',
             'nB': self.blocker_chunks,
             'containerUrl': self.blocker_url,
             'replicas': self.blocker_replicas
@@ -71,19 +94,22 @@ class SMJobManager:
                 if sm_job.long_status != res.json()['fnMessage'] :
                     sm_job.long_status = res.json()['fnMessage']
                     sm_job.save()
+            elif status == 'Error':
+                sm_job.status = status
+                sm_job.long_status = res.json()['fnMessage']
+                sm_job.save()
+                return False
 
         data = {
             'uid': blocker_id,
-            'path': self.output_dir,
+            'path': self.output_dir + '/blocker',
             'name': 'block.csv'
         }
         response = requests.post(url=blocker_url + 'save', data=json.dumps(data), headers={'Authorization': self.auth_header, 'content-type': 'application/json'})
+        block_url = client.file_url(self.output_dir + '/blocker/block.csv')
+        self.block_frame = pd.read_csv(block_url)
         return True
     def create_seed_examples(self):
-        res = requests.get('http://cdrive/download/?path=' + self.output_dir + '/output.csv', headers={'Authorization': self.auth_header})
-        self.profile_frame = pd.read_csv(res.json()['download_url'])
-        res = requests.get('http://cdrive/download/?path=' + self.output_dir + '/block.csv', headers={'Authorization': self.auth_header})
-        self.block_frame = pd.read_csv(res.json()['download_url'])
         self.seed_examples = pd.DataFrame()
         self.train = pd.DataFrame()
         s_id = self.profile_frame.sample().get('id').item()
@@ -96,6 +122,12 @@ class SMJobManager:
         self.seed_examples = self.seed_examples.append({'id': len(self.block_frame) + 4, 'l_id': self.profile_frame.sample().get('id').item(), 'r_id': self.profile_frame.sample().get('id').item()}, ignore_index=True)
         self.seed_examples = self.seed_examples.append({'id': len(self.block_frame) + 5, 'l_id': self.profile_frame.sample().get('id').item(), 'r_id': self.profile_frame.sample().get('id').item()}, ignore_index=True)
     def featurize(self):
+        client = py_cdrive_api.Client(access_token=self.access_token)
+        try:
+            client.delete(self.output_dir + '/featurizer')
+        except py_cdrive_api.ForbiddenAccessException as e:
+            pass 
+        client.create_folder(self.output_dir, 'featurizer')
         sm_job = SMJob.objects.filter(uid=self.uid)[0]
         sm_job.stage = "Featurizer"
         sm_job.status = "Running"
@@ -106,16 +138,12 @@ class SMJobManager:
         featurizer_input = featurizer_input.append(self.seed_examples, ignore_index=True)
         featurizer_input = featurizer_input.astype(int)
         featurizer_input.to_csv(settings.DATA_PATH + '/' + self.uid + '/featurizer-input.csv', index=False)
-        f = open(settings.DATA_PATH + '/' + self.uid + '/featurizer-input.csv','rb')
-        file_name = 'featurizer-input.csv'
-        file_arg = {'file': (file_name, f), 'path': (None, self.output_dir)}
-        requests.post('http://cdrive/upload/', files=file_arg, headers={'Authorization': self.auth_header})
-        f.close()
+        client.upload(settings.DATA_PATH + '/' + self.uid + '/featurizer-input.csv', self.output_dir + '/featurizer')
         featurizer_url = 'http://featurizer-' + os.environ['COLUMBUS_USERNAME'] + '/api/'
         data = {
-            'aPath': self.output_dir + '/output.csv',
-            'bPath': self.output_dir + '/output.csv',
-            'cPath': self.output_dir + '/featurizer-input.csv',
+            'aPath': self.output_dir + '/profiler/output.csv',
+            'bPath': self.output_dir + '/profiler/output.csv',
+            'cPath': self.output_dir + '/featurizer/featurizer-input.csv',
             'nC': self.featurizer_chunks,
             'containerUrl': self.featurizer_url,
             'replicas': self.featurizer_replicas
@@ -138,33 +166,37 @@ class SMJobManager:
                 if sm_job.long_status != res.json()['fnMessage'] :
                     sm_job.long_status = res.json()['fnMessage']
                     sm_job.save()
+            elif status == 'Error':
+                sm_job.status = status
+                sm_job.long_status = res.json()['fnMessage']
+                sm_job.save()
+                return False
 
         data = {
             'uid': featurizer_id,
-            'path': self.output_dir,
+            'path': self.output_dir + '/featurizer',
             'name': 'features.csv'
         }
         response = requests.post(url=featurizer_url + 'save', data=json.dumps(data), headers={'Authorization': self.auth_header, 'content-type': 'application/json'})
+        features_url = client.file_url(self.output_dir + '/featurizer/features.csv')
+        self.features_frame = pd.read_csv(features_url).sort_values('id').reset_index(drop=True)
         return True
     def init_learner(self):
+        client = py_cdrive_api.Client(access_token=self.access_token)
+        try:
+            client.delete(self.output_dir + '/learner')
+        except py_cdrive_api.ForbiddenAccessException as e:
+            pass 
+        client.create_folder(self.output_dir, 'learner')
         sm_job = SMJob.objects.filter(uid=self.uid)[0]
         sm_job.stage = "Active Learning"
         sm_job.status = "Running"
         sm_job.long_status = "Initializing"
         sm_job.save()
-        res = requests.get('http://cdrive/download/?path=' + self.output_dir + '/features.csv', headers={'Authorization': self.auth_header})
-        self.features_frame = pd.read_csv(res.json()['download_url']).sort_values('id').reset_index(drop=True)
         truncated_profiles = self.profile_frame[['id', 'name', 'dataset', 'sample']]
         truncated_profiles.to_csv(settings.DATA_PATH + '/' + self.uid + '/truncated-profiles.csv', index=False)
-        f = open(settings.DATA_PATH + '/' + self.uid + '/truncated-profiles.csv','rb')
-        file_name = 'truncated-profiles.csv'
-        file_arg = {'file': (file_name, f), 'path': (None, self.output_dir)}
-        requests.post('http://cdrive/upload/', files=file_arg, headers={'Authorization': self.auth_header})
-        f.close()
-        f = open('/options.json', 'rb')
-        file_arg = {'file': ('options.json', f), 'path': (None, self.output_dir)}
-        requests.post('http://cdrive/upload/', files=file_arg, headers={'Authorization': self.auth_header})
-        f.close()
+        client.upload(settings.DATA_PATH + '/' + self.uid + '/truncated-profiles.csv', self.output_dir + '/learner')
+        client.upload('/options.json', self.output_dir + '/learner')
         self.create_labeling_task(self.seed_examples.tail(3))
     def run_iteration(self):
         self.current_iteration = self.current_iteration + 1
@@ -193,8 +225,16 @@ class SMJobManager:
             new_examples[['id', 'l_id', 'r_id']] = self.block_frame[self.block_frame["id"].isin(entropies.sort_values("entropy", ascending=False).head(self.batch_size)["id"])][['id', 'l_id', 'r_id']]
             self.create_labeling_task(new_examples)
         else:
+            client = py_cdrive_api.Client(access_token=self.access_token)
+            try:
+                client.delete(self.output_dir + '/apply-model')
+            except py_cdrive_api.ForbiddenAccessException as e:
+                pass
+            client.create_folder(self.output_dir, 'apply-model')
+            self.save_model(self.output_dir + '/learner')
+            self.apply_model(self.output_dir + '/apply-model')
             sm_job.status = "Complete"
-            sm_job.long_status = "Training Complete"
+            sm_job.long_status = "Complete. Matches saved to " + self.output_dir + '/apply-model/matches.csv'
             sm_job.save()
     def create_labeling_task(self, examples):
         examples = examples.astype(int)
@@ -202,19 +242,17 @@ class SMJobManager:
         file_name = task_name + '.csv'
         file_path = settings.DATA_PATH + '/' + self.uid + '/' + file_name
         examples.to_csv(file_path, index=False)
-        f = open(file_path,'rb')
-        file_arg = {'file': (file_name, f), 'path': (None, self.output_dir)}
-        requests.post('http://cdrive/upload/', files=file_arg, headers={'Authorization': self.auth_header})
-        f.close()
+        client = py_cdrive_api.Client(access_token=self.access_token)
+        client.upload(file_path, self.output_dir + '/learner')
         data = {
             'retId': self.uid,
             'taskName': task_name, 
             'template': 'EMD',
-            'dataPath': self.output_dir + '/truncated-profiles.csv',
-            'examplesPath': self.output_dir + '/' + file_name,
-            'labelOptionsPath': self.output_dir + '/options.json',
+            'dataPath': self.output_dir + '/learner/truncated-profiles.csv',
+            'examplesPath': self.output_dir + '/learner/' + file_name,
+            'labelOptionsPath': self.output_dir + '/learner/options.json',
             'completionUrl': 'http://lynx-' + os.environ['COLUMBUS_USERNAME'] + '/api/complete-iteration/',
-            'outputPath': self.output_dir,
+            'outputPath': self.output_dir + '/learner',
             'outputName': task_name + '-labeled.csv'
         }
         res = requests.post('http://labeler-' + os.environ['COLUMBUS_USERNAME'] + '/api/create-task', data=json.dumps(data), headers={'Authorization': self.auth_header, 'content-type': 'application/json'}) 
@@ -235,9 +273,10 @@ class SMJobManager:
         sm_job.status = 'Running'
         sm_job.long_status = 'Iteration ' + str(self.current_iteration) + '/' + str(self.iterations) 
         sm_job.save()
-        file_path = self.output_dir + '/iteration-' + str(self.current_iteration) + '-' + self.uid + '-labeled.csv'
-        res = requests.get('http://cdrive/download/?path=' + file_path, headers={'Authorization': self.auth_header})
-        new_examples = pd.read_csv(res.json()['download_url'])
+        file_path = self.output_dir + '/learner/iteration-' + str(self.current_iteration) + '-' + self.uid + '-labeled.csv'
+        client = py_cdrive_api.Client(access_token=self.access_token)
+        file_url = client.file_url(file_path)
+        new_examples = pd.read_csv(file_url)
         new_examples['label'] = new_examples['label'].map({'Yes': 1, 'No': 0})
         self.train = pd.concat([self.train, new_examples])
         self.run_iteration()
@@ -245,9 +284,8 @@ class SMJobManager:
     def save_model(self, path):
         file_name = 'iteration-' + str(self.current_iteration) + '-model.joblib'
         joblib.dump(self.model, settings.DATA_PATH + '/' + self.uid + '/' + file_name) 
-        f = open(settings.DATA_PATH + '/' + self.uid + '/' + file_name, 'rb')
-        file_arg = {'file': (file_name, f), 'path': (None, path)}
-        requests.post('http://cdrive/upload/', files=file_arg, headers={'Authorization': self.auth_header})
+        client = py_cdrive_api.Client(access_token=self.access_token)
+        client.upload(settings.DATA_PATH + '/' + self.uid + '/' + file_name, path)
     def apply_model(self, path):
         X_test = self.features_frame[:-5]
         del X_test['id']
@@ -260,6 +298,5 @@ class SMJobManager:
         file_name = 'matches.csv'
         file_path = settings.DATA_PATH + '/' + self.uid + '/' + file_name
         predictions.to_csv(file_path, index=False)
-        f = open(file_path, 'rb')
-        file_arg = {'file': (file_name, f), 'path': (None, path)}
-        requests.post('http://cdrive/upload/', files=file_arg, headers={'Authorization': self.auth_header})
+        client = py_cdrive_api.Client(access_token=self.access_token)
+        client.upload(file_path, path)

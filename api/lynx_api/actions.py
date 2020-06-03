@@ -25,10 +25,16 @@ def execute_workflow(uid, token, data):
         min_test_size = int(data['minTestSize'])
     )
     job_managers[uid] = jm
-    jm.profile()
-    jm.block()
+    if not jm.profile():
+        del job_managers[uid]
+        return
+    if not jm.block():
+        return
+        del job_managers[uid]
     jm.create_seed_examples()
-    jm.featurize()
+    if not jm.featurize():
+        return
+        del job_managers[uid]
     jm.init_learner()
 
 def complete_iteration(uid):

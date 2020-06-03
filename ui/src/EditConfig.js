@@ -126,19 +126,19 @@ class EditConfig extends React.Component {
   render() {
     let saveButton, cancelButton;
     saveButton = (
-      <button className="btn btn-lg btn-primary mx-3" onClick={() => this.setState({configNameInput: true})} >
+      <button style={{width: 150}} className="btn btn-lg btn-primary mx-3" onClick={() => this.setState({configNameInput: true})} >
         Save Config
       </button>
     );
     if (Object.keys(this.props.config).length === 0) {
       cancelButton = (
-        <button className="btn btn-lg btn-secondary mx-3" disabled>
+        <button style={{width: 150}} className="btn btn-lg btn-secondary mx-3" disabled>
           Cancel
         </button>
       );
     } else {
       cancelButton = (
-        <button className="btn btn-lg btn-secondary mx-3" onClick={this.props.cancelUpdate}>
+        <button style={{width: 150}} className="btn btn-lg btn-secondary mx-3" onClick={this.props.cancelUpdate}>
           Cancel
         </button>
       );
@@ -240,7 +240,6 @@ class EditConfig extends React.Component {
               <button className="btn btn-secondary" onClick={() => this.setState({configSelector: true})}>
                 Browse
               </button>
-              <span className="mx-3">{this.state.configName}</span>
             </div>
             <div className="my-3 h4 text-center">
               OR

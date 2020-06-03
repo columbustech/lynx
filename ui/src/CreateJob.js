@@ -101,12 +101,12 @@ class CreateJob extends React.Component {
           <div className="app-body">
             <div className="app-content">
               <div className="app-message">
-                {`Lynx has been customized for ${this.props.config.taskType} using config file ${this.props.configName}`}
+                {`Customized for ${this.props.config.taskType} using config file ${this.props.configName}`}
               </div>
               <table className="mx-auto">
                 <tr>
                   <td>
-                    <input type="text" className="cdrive-path-input my-3 px-3" placeholder="Select Input Path" value={this.state.inputPath} onChange={e => this.setState({inputPath: e.target.value})} />
+                    <input type="text" className="cdrive-path-input my-3 px-3" placeholder="Folder containing data lake files" value={this.state.inputPath} onChange={e => this.setState({inputPath: e.target.value})} />
                     <button className="browse-button my-3" onClick={() => this.setState({inputPathSelector: true})}>
                       {"..."}
                     </button>
@@ -114,7 +114,7 @@ class CreateJob extends React.Component {
                 </tr>
                 <tr>
                   <td>
-                    <input type="text" className="cdrive-path-input my-3 px-3" placeholder="Select Output Path" value={this.state.outputPath} onChange={e => this.setState({outputPath: e.target.value})} />
+                    <input type="text" className="cdrive-path-input my-3 px-3" placeholder="Output folder for matches" value={this.state.outputPath} onChange={e => this.setState({outputPath: e.target.value})} />
                     <button className="browse-button my-3" onClick={() => this.setState({outputPathSelector: true})}>
                       {"..."}
                     </button>

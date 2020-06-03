@@ -56,8 +56,8 @@ class Config(APIView):
         token = auth_header.split()[1]
         client = None
         try:
-            client = py_cdrive_api.CDriveClient(access_token=token)
-            parent_details = client.list('users/' + os.environ['COLUMBUS_USERNAME'] + '/apps/lynx')
+            client = py_cdrive_api.Client(access_token=token)
+            parent_details = client.list_detailed('users/' + os.environ['COLUMBUS_USERNAME'] + '/apps/lynx')
             if(parent_details['permission'] != 'Edit'):
                 return Response(status=status.HTTP_403_FORBIDDEN)
         except py_cdrive_api.UnauthorizedAccessException as e:
@@ -67,7 +67,7 @@ class Config(APIView):
 
         config_url = None
         try:
-            config_url = client.download('users/' + os.environ['COLUMBUS_USERNAME'] + '/apps/lynx/default_config.json')
+            config_url = client.file_url('users/' + os.environ['COLUMBUS_USERNAME'] + '/apps/lynx/default_config.json')
         except py_cdrive_api.ForbiddenAccessException:
             return Response({}, status=status.HTTP_200_OK)
         response = requests.get(config_url)
@@ -83,14 +83,14 @@ class SaveConfig(APIView):
         config_name = request.data['configName']
         client = None
         try:
-            client = py_cdrive_api.CDriveClient(access_token=token)
+            client = py_cdrive_api.Client(access_token=token)
             client.delete('users/' + os.environ['COLUMBUS_USERNAME'] + '/apps/lynx/' + config_name)
         except py_cdrive_api.UnauthorizedAccessException as e:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
         except py_cdrive_api.ForbiddenAccessException as e:
             pass
 
-        client.upload(cdrive_path='users/' + os.environ['COLUMBUS_USERNAME'] + '/apps/lynx', content=config_string, file_name=config_name)
+        client.create_file(cdrive_path='users/' + os.environ['COLUMBUS_USERNAME'] + '/apps/lynx', content=config_string, file_name=config_name)
         return Response(status=status.HTTP_200_OK)
 
 class ExecuteWorkflow(APIView):

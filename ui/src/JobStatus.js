@@ -2,7 +2,6 @@ import React from 'react';
 import Cookies from 'universal-cookie';
 import axios from 'axios';
 import CDrivePathSelector from './CDrivePathSelector';
-import { Link } from "react-router-dom";
 import './Lynx.css';
 
 class JobStatus extends React.Component{
@@ -110,46 +109,25 @@ class JobStatus extends React.Component{
     } else {
       let actions;
       actions = [];
-      if(this.state.job.long_status === "Label seed examples") {
+      if(this.state.job.status === "Ready") {
         actions.push(
-          <a className="btn btn-primary btn-lg blocker-btn" href={this.state.job.labeling_url}>
+          <a className="btn btn-primary btn-lg mx-3" href={this.state.job.labeling_url}>
             Start Labeling
           </a>
         );
-      }
-      else if(this.state.job.status === "Ready") {
+      } else if (this.state.job.status === "Running") {
         actions.push(
-          <a className="btn btn-primary btn-lg blocker-btn" href={this.state.job.labeling_url}>
-            Start Labeling
+          <a className="btn btn-secondary btn-lg mx-3" href={this.props.specs.appUrl}>
+            Cancel
           </a>
         );
+      } else if (this.state.job.status === "Complete" || this.state.job.status === "Error") {
         actions.push(
-          <button className="btn btn-secondary btn-lg blocker-btn" onClick={() => this.setState({pathSelector: true, pathSelectAction: this.applyModel})} >
-            Apply Model
-          </button>
-        );
-        actions.push(
-          <button className="btn btn-secondary btn-lg blocker-btn" onClick={() => this.setState({pathSelector: true, pathSelectAction: this.saveModel})}>
-            Save Model
-          </button>
-        );
-      } else if (this.state.job.status === "Complete") {
-        actions.push(
-          <button className="btn btn-primary btn-lg blocker-btn" onClick={() => this.setState({pathSelector: true, pathSelectAction: this.applyModel})} >
-            Apply Model
-          </button>
-        );
-        actions.push(
-          <button className="btn btn-secondary btn-lg blocker-btn" onClick={() => this.setState({pathSelector: true, pathSelectAction: this.saveModel})}>
-            Save Model
-          </button>
+          <a className="btn btn-primary btn-lg mx-3" href={this.props.specs.appUrl}>
+            Finish
+          </a>
         );
       }
-      actions.push(
-        <Link className="btn btn-secondary btn-lg blocker-btn" to="/" >
-          Quit
-        </Link>
-      );
       let saveStatus;
       if (this.state.actionMessage !== "") {
         saveStatus = (
@@ -169,22 +147,45 @@ class JobStatus extends React.Component{
             actionName="Select this folder" driveObjects={this.state.driveObjects} type="folder" />
         );
       }
+      let menuButtons = [];
+      menuButtons.push(
+        <button className="btn app-menu-btn">
+          Manual Mode
+        </button>
+      );
+      menuButtons.push(
+        <a href={this.props.specs.cdriveUrl} className="btn app-menu-btn">
+          Quit
+        </a>
+      );
       return(
-        <div className="app-container">
+        <div className="app-page">
           <div className="app-header">
-            Matching Status
+            <div className="app-menu">
+              {menuButtons}
+            </div>
+            <div className="app-header-title">
+              {"Lynx 1.0: End-to-End Semantic Matching"}
+            </div>
           </div>
-          <div className="input-div" style={{marginTop: 30}}>
-            <span className="mx-2 h5 font-weight-normal">Stage: {this.state.job.stage}</span>
+          <div className="app-body">
+            <div className="app-content">
+              <div className="my-5 h3 text-center">
+                Lynx Task Status
+              </div>
+              <div className="my-4" style={{width: 700}}>
+                <span className="mx-2 h5 font-weight-normal">Stage: {this.state.job.stage}</span>
+              </div>
+              <div className="my-4" style={{width: 700}}>
+                <span className="mx-2 h5 font-weight-normal">Status: {this.state.job.long_status}</span>
+              </div>
+              <div className="my-5 text-center">
+                {actions}
+              </div>
+              {saveStatus}
+              {cdrivePathSelector}
+            </div>
           </div>
-          <div className="input-div">
-            <span className="mx-2 h5 font-weight-normal">Status: {this.state.job.long_status}</span>
-          </div>
-          <div className="input-div text-center">
-            {actions}
-          </div>
-          {saveStatus}
-          {cdrivePathSelector}
         </div>
       );
     }
