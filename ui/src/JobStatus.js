@@ -1,6 +1,7 @@
 import React from 'react';
 import Cookies from 'universal-cookie';
 import axios from 'axios';
+import { Link } from 'react-router-dom';
 import CDrivePathSelector from './CDrivePathSelector';
 import './Lynx.css';
 
@@ -117,9 +118,9 @@ class JobStatus extends React.Component{
         );
       } else if (this.state.job.status === "Running") {
         actions.push(
-          <a className="btn btn-secondary btn-lg mx-3" href={this.props.specs.appUrl}>
+          <Link className="btn btn-secondary btn-lg mx-3" to="/">
             Cancel
-          </a>
+          </Link>
         );
       } else if (this.state.job.status === "Complete" || this.state.job.status === "Error") {
         actions.push(

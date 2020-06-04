@@ -1,7 +1,6 @@
 import React from 'react';
 import Cookies from 'universal-cookie';
 import axios from 'axios';
-import { Modal, Button } from 'react-bootstrap';
 import CDrivePathSelector from './CDrivePathSelector';
 import './Lynx.css';
 
@@ -124,9 +123,17 @@ class EditConfig extends React.Component {
     );
   }
   render() {
+    let noConfError;
+    if (this.state.configName === "") {
+      noConfError = (
+        <div className="m-3 h5 font-weight-normal text-center">
+          {"Lynx could not find a default config. Import a config or create a new config."}
+        </div>
+      );
+    }
     let saveButton, cancelButton;
     saveButton = (
-      <button style={{width: 150}} className="btn btn-lg btn-primary mx-3" onClick={() => this.setState({configNameInput: true})} >
+      <button style={{width: 150}} className="btn btn-lg btn-primary mx-3" onClick={this.saveConfig} >
         Save Config
       </button>
     );
@@ -143,74 +150,6 @@ class EditConfig extends React.Component {
         </button>
       );
     }
-    let learnerInputsModal;
-    learnerInputsModal = (
-      <Modal show={this.state.learnerInputs} onHide={() => this.setState({learnerInputs: false})}>
-        <Modal.Header closeButton>
-          <Modal.Title>Configure Active Learning Model</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <table className="mx-auto">
-            <tr>
-              <td>
-                <span className="m-3">No. of Trees:</span>
-              </td>
-              <td>
-                <input type="text" value={this.state.nEstimators} className="p-1 m-3 number-input"
-                  onChange={e => this.setState({nEstimators: e.target.value})} />
-              </td>
-              <td>
-                <span className="m-3">No. of Iterations:</span>
-              </td>
-              <td>
-                <input type="text" value={this.state.iterations} className="p-1 m-3 number-input"
-                  onChange={e => this.setState({iterations: e.target.value})} />
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <span className="m-3">Batch Size:</span>
-              </td>
-              <td>
-                <input type="text" value={this.state.batchSize} className="p-1 m-3 number-input"
-                  onChange={e => this.setState({batchSize: e.target.value})} />
-              </td>
-              <td>
-                <span className="m-3">Min Test Size:</span>
-              </td>
-              <td>
-                <input type="text" value={this.state.minTestSize} className="p-1 m-3 number-input"
-                  onChange={e => this.setState({minTestSize: e.target.value})} />
-              </td>
-            </tr>
-          </table>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="primary" onClick={() => this.setState({learnerInputs: false})}>
-            Done
-          </Button>
-        </Modal.Footer>
-      </Modal>
-    );
-    let configNameModal;
-    configNameModal = (
-      <Modal show={this.state.configNameInput} onHide={() => this.setState({configNameInput:false})}>
-        <Modal.Header closeButton>
-          <Modal.Title>Enter Config File Name</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <div style={{ marginTop: "10px" }} className="form-group">
-            <input type="text"  className="form-control" value={this.state.configName}
-              onChange={e => this.setState({configName: e.target.value})} />
-          </div>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="primary" onClick={this.saveConfig}>
-            Save Config 
-          </Button>
-        </Modal.Footer>
-      </Modal>
-    );
     let menuButtons = [];
     menuButtons.push(
       <button className="btn app-menu-btn">
@@ -235,6 +174,7 @@ class EditConfig extends React.Component {
         </div>
         <div className="app-body">
           <div className="app-content">
+            {noConfError}
             <div className="mt-4">
               <span className="mx-3 h5">Import Config:</span>
               <button className="btn btn-secondary" onClick={() => this.setState({configSelector: true})}>
@@ -250,11 +190,21 @@ class EditConfig extends React.Component {
             <table>
               <tr>
                 <td>
-                  <span className="mx-3">Task Type:</span>
+                  <span className="mx-3">Config Name:</span>
                 </td>
                 <td>
+                  <input type="text" placeholder="Config File Name" value={this.state.configName} className="p-2 mx-3 my-2"
+                    onChange={e => this.setState({configName: e.target.value})} />
+                </td>
+                <td>
+                  <span className="mx-3">Task Type:</span>
+                </td>
+                <td colSpan={3}>
                   <input type="text" placeholder="Task Type" value={this.state.taskType} className="p-2 mx-3 my-2"
                     onChange={e => this.setState({taskType: e.target.value})} />
+                </td>
+                <td>
+                  <span className="mx-3">Learner:</span>
                 </td>
               </tr>
               <tr>
@@ -271,6 +221,22 @@ class EditConfig extends React.Component {
                 <td>
                   <input type="text" value={this.state.profilerReplicas} className="p-1 mx-3 my-2 number-input"
                     onChange={e => this.setState({profilerReplicas: e.target.value})} />
+                </td>
+                <td />
+                <td />
+                <td>
+                  <span className="m-3">No. of Trees:</span>
+                </td>
+                <td>
+                  <input type="text" value={this.state.nEstimators} className="p-1 m-3 number-input"
+                    onChange={e => this.setState({nEstimators: e.target.value})} />
+                </td>
+                <td>
+                  <span className="m-3">No. of Iterations:</span>
+                </td>
+                <td>
+                  <input type="text" value={this.state.iterations} className="p-1 m-3 number-input"
+                    onChange={e => this.setState({iterations: e.target.value})} />
                 </td>
               </tr>
               <tr>
@@ -293,6 +259,20 @@ class EditConfig extends React.Component {
                 </td>
                 <td>
                   <input type="text" value={this.state.blockerChunks} className="p-1 mx-3 my-2 number-input" onChange={e => this.setState({blockerChunks: e.target.value})} />
+                </td>
+                <td>
+                  <span className="m-3">Examples per Iteration:</span>
+                </td>
+                <td>
+                  <input type="text" value={this.state.batchSize} className="p-1 m-3 number-input"
+                    onChange={e => this.setState({batchSize: e.target.value})} />
+                </td>
+                <td>
+                  <span className="m-3">Min Test Size:</span>
+                </td>
+                <td>
+                  <input type="text" value={this.state.minTestSize} className="p-1 m-3 number-input"
+                    onChange={e => this.setState({minTestSize: e.target.value})} />
                 </td>
               </tr>
               <tr>
@@ -318,17 +298,7 @@ class EditConfig extends React.Component {
                 </td>
               </tr>
               <tr>
-                <td>
-                  <span className="mx-3">Learner:</span>
-                </td>
-                <td>
-                  <button className="btn btn-secondary mx-3 my-2" onClick={() => this.setState({learnerInputs: true})}>
-                    Configure
-                  </button>
-                </td>
-              </tr>
-              <tr>
-                <td colSpan={6}>
+                <td colSpan={10}>
                   <div className="w-100 my-4 text-center">
                     {saveButton}
                     {cancelButton}
@@ -336,8 +306,6 @@ class EditConfig extends React.Component {
                 </td>
               </tr>
             </table>
-            {learnerInputsModal}
-            {configNameModal}
             <CDrivePathSelector show={this.state.configSelector} toggle={() => this.setState({configSelector: false})}
               action={path => this.importConfig(path)} title="Select Config File"  actionName="Select"
               driveObjects={this.state.driveObjects} type="file" />
