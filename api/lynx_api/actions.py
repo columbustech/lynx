@@ -5,6 +5,9 @@ from .job_manager_factory import job_managers
 
 def execute_workflow(uid, token, data):
     os.mkdir(os.path.join(settings.DATA_PATH, uid))
+    gold_path = None
+    if 'goldPath' in data:
+        gold_path = data['goldPath']
     jm = SMJobManager(
         uid=uid,
         auth_header = 'Bearer ' + token,
@@ -22,7 +25,8 @@ def execute_workflow(uid, token, data):
         current_iteration = 0,
         n_estimators = int(data['nEstimators']),
         batch_size = int(data['batchSize']),
-        min_test_size = int(data['minTestSize'])
+        min_test_size = int(data['minTestSize']),
+        gold_path = gold_path
     )
     job_managers[uid] = jm
     if not jm.profile():
@@ -48,3 +52,7 @@ def save_model(uid, path):
 def apply_model(uid, path):
     jm = job_managers[uid]
     jm.apply_model(path)
+
+def calculate_accuracy(uid):
+    jm = job_managers[uid]
+    return jm.calculate_accuracy()

@@ -21,6 +21,7 @@ class SMJobManager:
         self.train = None
         self.model = None
         self.seed_examples = None
+        self.gold = None
         self.access_token = self.auth_header.split()[1]
     def profile(self):
         client = py_cdrive_api.Client(access_token=self.access_token)
@@ -197,6 +198,8 @@ class SMJobManager:
         truncated_profiles.to_csv(settings.DATA_PATH + '/' + self.uid + '/truncated-profiles.csv', index=False)
         client.upload(settings.DATA_PATH + '/' + self.uid + '/truncated-profiles.csv', self.output_dir + '/learner')
         client.upload('/options.json', self.output_dir + '/learner')
+        if self.gold_path is not None:
+            self.gold = pd.read_csv(client.file_url(self.gold_path))
         self.create_labeling_task(self.seed_examples.tail(3))
     def run_iteration(self):
         self.current_iteration = self.current_iteration + 1
@@ -244,29 +247,33 @@ class SMJobManager:
         examples.to_csv(file_path, index=False)
         client = py_cdrive_api.Client(access_token=self.access_token)
         client.upload(file_path, self.output_dir + '/learner')
-        data = {
-            'retId': self.uid,
-            'taskName': task_name, 
-            'template': 'EMD',
-            'dataPath': self.output_dir + '/learner/truncated-profiles.csv',
-            'examplesPath': self.output_dir + '/learner/' + file_name,
-            'labelOptionsPath': self.output_dir + '/learner/options.json',
-            'completionUrl': 'http://lynx-' + os.environ['COLUMBUS_USERNAME'] + '/api/complete-iteration/',
-            'outputPath': self.output_dir + '/learner',
-            'outputName': task_name + '-labeled.csv'
-        }
-        res = requests.post('http://labeler-' + os.environ['COLUMBUS_USERNAME'] + '/api/create-task', data=json.dumps(data), headers={'Authorization': self.auth_header, 'content-type': 'application/json'}) 
-        sm_job = SMJob.objects.filter(uid=self.uid)[0]
-        sm_job.stage = 'Active Learning'
-        sm_job.status = 'Ready'
-        sm_job.labeling_url = os.environ['CDRIVE_URL'] + 'app/' + os.environ['COLUMBUS_USERNAME'] + '/labeler/example/' + task_name
-        long_status = ""
-        if self.current_iteration != 0:
-            long_status = str(self.current_iteration - 1) + '/' + str(self.iterations) + ' iterations complete. '
-            sm_job.long_status = long_status + "Label examples for iteration " + str(self.current_iteration)
+        if self.gold_path is None:
+            data = {
+                'retId': self.uid,
+                'taskName': task_name, 
+                'template': 'EMD',
+                'dataPath': self.output_dir + '/learner/truncated-profiles.csv',
+                'examplesPath': self.output_dir + '/learner/' + file_name,
+                'labelOptionsPath': self.output_dir + '/learner/options.json',
+                'completionUrl': 'http://lynx-' + os.environ['COLUMBUS_USERNAME'] + '/api/complete-iteration/',
+                'outputPath': self.output_dir + '/learner',
+                'outputName': task_name + '-labeled.csv'
+            }
+            res = requests.post('http://labeler-' + os.environ['COLUMBUS_USERNAME'] + '/api/create-task', data=json.dumps(data), headers={'Authorization': self.auth_header, 'content-type': 'application/json'}) 
+
+            sm_job = SMJob.objects.filter(uid=self.uid)[0]
+            sm_job.stage = 'Active Learning'
+            sm_job.status = 'Ready'
+            sm_job.labeling_url = os.environ['CDRIVE_URL'] + 'app/' + os.environ['COLUMBUS_USERNAME'] + '/labeler/example/' + task_name
+            long_status = ""
+            if self.current_iteration != 0:
+                long_status = str(self.current_iteration - 1) + '/' + str(self.iterations) + ' iterations complete. '
+                sm_job.long_status = long_status + "Label examples for iteration " + str(self.current_iteration)
+            else:
+                sm_job.long_status = "Label seed examples"
+            sm_job.save()
         else:
-            sm_job.long_status = "Label seed examples"
-        sm_job.save()
+            self.fake_label(task_name)
     def complete_iteration(self): 
         sm_job = SMJob.objects.filter(uid=self.uid)[0]
         sm_job.stage = 'Active Learning'
@@ -281,6 +288,28 @@ class SMJobManager:
         self.train = pd.concat([self.train, new_examples])
         self.run_iteration()
         return os.environ['CDRIVE_URL'] + 'app/' + os.environ['COLUMBUS_USERNAME'] + '/lynx/job/' + self.uid
+    def fake_label(self, task_name):
+        client = py_cdrive_api.Client(access_token=self.access_token)
+        examples = pd.read_csv(client.file_url(self.output_dir + '/learner/' + task_name + '.csv'))
+        if self.current_iteration == 0:
+            examples['label'] = 'No'
+        else:
+            examples = self.block_frame[self.block_frame['id'].isin(examples['id'])]
+            index = self.gold.set_index(list(self.gold.columns)).index
+            examples.set_index(list(self.gold.columns), inplace=True)
+            mask1 = examples.index.isin(index)
+            inverted_columns = list(map(lambda x: 'r_' + x[2:] if x.startswith('l_') else 'l_' + x[2:], list(self.gold.columns)))
+            examples.reset_index(inplace=True)
+            examples.set_index(inverted_columns, inplace=True)
+            mask2 = examples.index.isin(index)
+            examples['label'] = mask1 | mask2
+            examples['label'] = examples['label'].map({True: 'Yes', False: 'No'})
+            examples.reset_index(drop=True, inplace=True)
+        file_name = task_name + '-labeled.csv'
+        file_path = settings.DATA_PATH + '/' + self.uid + '/' + file_name
+        examples.to_csv(file_path, index=False)
+        client.upload(file_path, self.output_dir + '/learner')
+        self.complete_iteration()
     def save_model(self, path):
         file_name = 'iteration-' + str(self.current_iteration) + '-model.joblib'
         joblib.dump(self.model, settings.DATA_PATH + '/' + self.uid + '/' + file_name) 
@@ -300,3 +329,19 @@ class SMJobManager:
         predictions.to_csv(file_path, index=False)
         client = py_cdrive_api.Client(access_token=self.access_token)
         client.upload(file_path, path)
+    def calculate_accuracy(self):
+        client = py_cdrive_api.Client(access_token=self.access_token)
+        predictions = pd.read_csv(client.file_url(self.output_dir + '/apply-model/matches.csv'))
+        index = self.gold.set_index(list(self.gold.columns)).index
+        predictions.set_index(list(self.gold.columns), inplace=True)
+        mask1 = predictions.index.isin(index)
+        inverted_columns = list(map(lambda x: 'r_' + x[2:] if x.startswith('l_') else 'l_' + x[2:], list(self.gold.columns)))
+        predictions.reset_index(inplace=True)
+        predictions.set_index(inverted_columns, inplace=True)
+        mask2 = predictions.index.isin(index)
+        predictions['ground_truth'] = mask1 | mask2
+        relevant_docs = len(predictions[predictions['ground_truth']==True])
+        precision = relevant_docs/len(predictions)
+        recall = relevant_docs/(2*len(self.gold))
+        f1_score = 2/(1/precision + 1/recall)
+        return ({'precision': precision, 'recall': recall, 'f1Score': f1_score})

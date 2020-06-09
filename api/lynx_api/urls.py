@@ -12,5 +12,6 @@ urlpatterns = [
     path('list-jobs/', views.ListJobs.as_view()),
     path('save-model/', views.SaveModel.as_view()),
     path('apply-model/', views.ApplyModel.as_view()),
-    path('delete-job/', views.DeleteJob.as_view())
+    path('delete-job/', views.DeleteJob.as_view()),
+    path('accuracy/', views.Accuracy.as_view())
 ]

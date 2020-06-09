@@ -9,7 +9,7 @@ from rest_framework.parsers import JSONParser
 from .models import SMJob
 from .serializers import SMJobSerializer
 from .job_manager import SMJobManager
-from .actions import execute_workflow, complete_iteration, save_model, apply_model
+from .actions import execute_workflow, complete_iteration, save_model, apply_model, calculate_accuracy
 
 import py_cdrive_api
 
@@ -157,3 +157,11 @@ class DeleteJob(APIView):
         uid = request.data['uid']
         SMJob.objects.filter(uid=uid).delete()
         return Response(status=status.HTTP_200_OK)
+
+class Accuracy(APIView):
+    parser_class = (JSONParser,)
+
+    def get(self, request):
+        uid = request.query_params['uid']
+        accuracy = calculate_accuracy(uid)
+        return Response(accuracy, status=status.HTTP_200_OK)
