@@ -22,7 +22,7 @@ export COLUMBUS_DOMAIN=my-columubus-deployment.io
 ```
 ## Config file
 
-Create a config file either on local machine or CDrive. 
+Create a lynx config file either on local machine or CDrive. This file can also be created using the lynx app on CDrive.
 
 ## Run Simulator
 
