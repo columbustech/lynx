@@ -3,18 +3,19 @@
   height: 100%;
 }
 .app-header {
-  height: 130px;
+  height: 70px;
   width: 100%;
   background-color: #303030;
   overflow: auto;
 }
 .app-header-title {
   color: #FFFFFF;
-  text-align: center;
   font-family: sans-serif;
-  font-size: 30px;
+  font-size: 22px;
   font-weight: 100;
-  margin-top: 48px;
+  margin-top: 15px;
+  margin-left: 40px;
+  float: left;
 }
 .app-menu {
   margin-top: 10px;
@@ -36,6 +37,7 @@
   font-family: sans-serif;
   width: 100%;
   margin-bottom: 30px;
+  text-align: center;
 }
 .app-menu-btn {
   color: #FFFFFF;
@@ -50,25 +52,32 @@
   width: 40px;
 }
 .cdrive-path-input {
-  width: 400px;
+  width: 350px;
   height: 50px;
   border: 2px solid #999999;
   border-right: 0;
+  padding-top: 1px;
+  padding-bottom: 1px;
 }
 .cdrive-path-input:focus {
   outline: None;
 }
 .browse-button {
   height: 50px;
-  width: 50px;
+  width: 85px;
+  padding-top: 1px;
+  padding-bottom: 1px;
   border-radius: 0;
-  border: 2px solid #999999;
-  background-color: #F8F9FA;
+  border: 2px solid #6C757D;
+  background-color: #6C757D;
+  color: white;
+  font-weight: 400;
 }
 .browse-button:focus {
   outline: None;
 }
 .browse-button:hover {
   cursor: pointer;
-  background-color: #E2E6EA;
+  border: 2px solid #5A6268;
+  background-color: #5A6268;
 }

@@ -166,13 +166,13 @@ class JobStatus extends React.Component{
               {menuButtons}
             </div>
             <div className="app-header-title">
-              {"Lynx 1.0: End-to-End Semantic Matching"}
+              {"Lynx 1.0"}
             </div>
           </div>
           <div className="app-body">
             <div className="app-content">
               <div className="my-5 h3 text-center">
-                Lynx Task Status
+                {"Lynx Status"}
               </div>
               <div className="my-4" style={{width: 700}}>
                 <span className="mx-2 h5 font-weight-normal">Stage: {this.state.job.stage}</span>

@@ -50,7 +50,7 @@ class SMJobManager:
             elif status == 'executing':
                 if sm_job.long_status != status :
                     sm_job.status = 'Running'
-                    sm_job.long_status = status
+                    sm_job.long_status = 'Executing'
                     sm_job.save()
             elif status == 'error':
                 sm_job.status = 'Error'
@@ -236,8 +236,9 @@ class SMJobManager:
             client.create_folder(self.output_dir, 'apply-model')
             self.save_model(self.output_dir + '/learner')
             self.apply_model(self.output_dir + '/apply-model')
+            sm_job.status = "Apply Model"
             sm_job.status = "Complete"
-            sm_job.long_status = "Complete. Matches saved to " + self.output_dir + '/apply-model/matches.csv'
+            sm_job.long_status = "Training complete. Model applied to blocking output. Matches saved to " + self.output_dir + '/apply-model/matches.csv'
             sm_job.save()
     def create_labeling_task(self, examples):
         examples = examples.astype(int)
@@ -266,11 +267,12 @@ class SMJobManager:
             sm_job.status = 'Ready'
             sm_job.labeling_url = os.environ['CDRIVE_URL'] + 'app/' + os.environ['COLUMBUS_USERNAME'] + '/labeler/example/' + task_name
             long_status = ""
-            if self.current_iteration != 0:
-                long_status = str(self.current_iteration - 1) + '/' + str(self.iterations) + ' iterations complete. '
-                sm_job.long_status = long_status + "Label examples for iteration " + str(self.current_iteration)
+            if self.current_iteration == 0:
+                sm_job.long_status = "Labeling seed examples"
+            elif self.current_iteration == 1:
+                sm_job.long_status = 'Finished labeling seed examples. Labeling examples for iteration 1/' + str(self.iterations) + '.'
             else:
-                sm_job.long_status = "Label seed examples"
+                sm_job.long_status = 'Finished labeling examples for iteration ' + str(self.current_iteration - 1) + '/' + str(self.iterations) + '. Labeling examples for iteration ' + str(self.current_iteration) + '/' + str(self.iterations) + '.'
             sm_job.save()
         else:
             self.fake_label(task_name)

@@ -95,35 +95,38 @@ class CreateJob extends React.Component {
               {menuButtons}
             </div>
             <div className="app-header-title">
-              {"Lynx 1.0: End-to-End Semantic Matching"}
+              {"Lynx 1.0"}
             </div>
           </div>
           <div className="app-body">
             <div className="app-content">
               <div className="app-message">
-                {`Customized for ${this.props.config.taskType} using config file ${this.props.configName}`}
+                {`Customized for ${this.props.config.taskType} using config file ${this.props.configName}.`}
+              </div>
+              <div className="app-message">
+                {`Enter CDrive path to input and output folders and click start.`}
               </div>
               <table className="mx-auto">
                 <tr>
                   <td>
-                    <input type="text" className="cdrive-path-input my-3 px-3" placeholder="Folder containing data lake files" value={this.state.inputPath} onChange={e => this.setState({inputPath: e.target.value})} />
+                    <input type="text" className="cdrive-path-input my-3 px-3" placeholder="Input folder for profiler" value={this.state.inputPath} onChange={e => this.setState({inputPath: e.target.value})} />
                     <button className="browse-button my-3" onClick={() => this.setState({inputPathSelector: true})}>
-                      {"..."}
+                      {"Browse"}
                     </button>
                   </td>
                 </tr>
                 <tr>
                   <td>
-                    <input type="text" className="cdrive-path-input my-3 px-3" placeholder="Output folder for matches" value={this.state.outputPath} onChange={e => this.setState({outputPath: e.target.value})} />
+                    <input type="text" className="cdrive-path-input my-3 px-3" placeholder="Output folder for predicted matches" value={this.state.outputPath} onChange={e => this.setState({outputPath: e.target.value})} />
                     <button className="browse-button my-3" onClick={() => this.setState({outputPathSelector: true})}>
-                      {"..."}
+                      {"Browse"}
                     </button>
                   </td>
                 </tr>
                 <tr>
                   <td>
                     <div className="w-100 my-4 text-center">
-                      <button className="btn btn-primary btn-lg btn-block" onClick={this.executeJob}>
+                      <button className="btn btn-primary btn-lg" style={{width: 200}} onClick={this.executeJob}>
                         Start
                       </button>
                     </div>

@@ -7,7 +7,7 @@ class ErrorPage extends React.Component{
       <div className="app-page">
         <div className="app-header">
           <div className="app-header-title">
-            {"Lynx 1.0: End-to-End Semantic Matching"}
+            {"Lynx 1.0"}
           </div>
         </div>
         <div className="app-body">
