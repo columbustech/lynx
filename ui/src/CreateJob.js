@@ -10,18 +10,25 @@ class CreateJob extends React.Component {
     super(props);
     this.state = {
       step: 1,
+      parameters: [],
       driveObjects: [],
       inputPath: "",
       outputPath: "",
+      paramsPath: "",
       inputPathSelector: false,
       outputPathSelector: false,
+      paramsPathSelector: false,
       uid: ""
     };
     this.getDriveObjects = this.getDriveObjects.bind(this);
     this.executeJob = this.executeJob.bind(this);
+    this.findParamFile = this.findParamFile.bind(this);
+    this.fetchParameters = this.fetchParameters.bind(this);
+    this.updateParameter = this.updateParameter.bind(this);
   }
   componentDidMount() {
     this.getDriveObjects();
+    this.findParamFile();
   }
   getDriveObjects() {
 		if(!this.props.specs) {
@@ -48,6 +55,57 @@ class CreateJob extends React.Component {
       }
     );
   }
+  findParamFile() {
+		if(!this.props.specs) {
+      return(null);
+    }
+    const cookies = new Cookies();
+    var auth_header = 'Bearer ' + cookies.get('lynx_token');
+    const request = axios({
+      method: 'GET',
+      url: `${this.props.specs.cdriveApiUrl}list/?path=users/${this.props.specs.username}/apps/lynx`,
+      headers: {'Authorization': auth_header}
+    });
+    request.then(response => {
+      if (response.data.driveObjects.filter(dobj => dobj.name === "optional_parameters.json").length > 0) {
+        this.setState({paramsPath: `users/${this.props.specs.username}/apps/lynx/optional_parameters.json`});
+      }
+    }, err => {
+    });
+  }
+  fetchParameters() {
+    if(this.state.paramsPath !== "") {
+      const cookies = new Cookies();
+      const request = axios({
+        method: "GET",
+        url: `${this.props.specs.cdriveApiUrl}download?path=${this.state.paramsPath}`,
+        headers: {
+          "Authorization": `Bearer ${cookies.get("lynx_token")}`,
+        }
+      });
+      request.then(
+        response => {
+          const req = axios({
+            method: "GET",
+            url: response.data.download_url
+          });
+          req.then(
+            res => {
+              this.setState({parameters: res.data, step: 2});
+            },
+          );
+        },
+      );
+    } else {
+      this.setState({step:2});
+    }
+  }
+  updateParameter(i, j, value) {
+    console.log(this.state.parameters);
+    var params = this.state.parameters;
+    params[i]["parameters"][j]["value"] = value;
+    this.setState({parameters: params});
+  }
   executeJob() {
     const cookies = new Cookies();
     const request = axios({
@@ -56,7 +114,8 @@ class CreateJob extends React.Component {
       data: {
         ...this.props.config,
         inputPath: this.state.inputPath,
-        outputPath: this.state.outputPath
+        outputPath: this.state.outputPath,
+        parameters: this.state.parameters
       },
       headers: {
         'Authorization': `Bearer ${cookies.get('lynx_token')}`,
@@ -97,7 +156,7 @@ class CreateJob extends React.Component {
               {`Customized for ${this.props.config.taskType} using config file ${this.props.configName}.`}
             </div>
             <div className="app-message">
-              {`Enter CDrive path to input and output folders and click next.`}
+              {`Enter CDrive paths to input folder, output folder and optionally a parameters file and click next.`}
             </div>
             <table className="mx-auto">
               <tr>
@@ -118,8 +177,16 @@ class CreateJob extends React.Component {
               </tr>
               <tr>
                 <td>
+                  <input type="text" className="cdrive-path-input my-3 px-3" placeholder="Optional parameters file" value={this.state.paramsPath} onChange={e => this.setState({paramsPath: e.target.value})} />
+                  <button className="browse-button my-3" onClick={() => this.setState({paramsPathSelector: true})}>
+                    {"Browse"}
+                  </button>
+                </td>
+              </tr>
+              <tr>
+                <td>
                   <div className="w-100 my-4 text-center">
-                    <button className="btn btn-primary btn-lg" style={{width: 200}} onClick={() => this.setState({step: 2})}>
+                    <button className="btn btn-primary btn-lg" style={{width: 200}} onClick={this.fetchParameters}>
                       {"Next"}
                     </button>
                   </div>
@@ -130,36 +197,67 @@ class CreateJob extends React.Component {
               action={path => this.setState({inputPath: path})} title="Select Input Folder"  actionName="Select this folder"
               driveObjects={this.state.driveObjects} type="folder" />
             <CDrivePathSelector show={this.state.outputPathSelector} toggle={() => this.setState({outputPathSelector : false})}
-              action={path => this.setState({outputPath: path})} title="Select Input Folder"  actionName="Select this folder"
+              action={path => this.setState({outputPath: path})} title="Select Output Folder"  actionName="Select this folder"
               driveObjects={this.state.driveObjects} type="folder" />
+            <CDrivePathSelector show={this.state.paramsPathSelector} toggle={() => this.setState({paramsPathSelector : false})}
+              action={path => this.setState({paramsPath: path})} title="Select Optional Parameters File"  actionName="Select"
+              driveObjects={this.state.driveObjects} type="file" />
           </div>
         );
       } else {
-        let paramsText;
-        paramsText = this.props.config.parameters.map((parameter, key) =>
-          <span key={"var" + key.toString()}> {parameter.name}{"="}{parameter.value}<br /></span>
-        );
+        let paramRows;
+        paramRows = [];
+        if (this.state.parameters.length === 0) {
+          paramRows.push(
+            <tr>
+              <td>
+                <span className="mx-3">No optional parameters found</span>
+              </td>
+            </tr>
+          )
+        } else {
+          this.state.parameters.forEach((stage, i) => {
+            paramRows.push(
+              <tr key={stage.stage}>
+                <td>
+                  <span className="mx-3">{stage.stage}:</span>
+                </td>
+              </tr>
+            );
+            stage.parameters.forEach((param, j) => {
+              paramRows.push(
+                <tr key={stage.stage + "-" + param.name}>
+                  <td/>
+                  <td>
+                    <span className="mx-3">{param.name}:</span>
+                  </td>
+                  <td>
+                    <input type="text" placeholder="Value" value={param.value} className="p-2 mx-3 my-2"
+                    onChange={e => this.updateParameter(i, j, e.target.value)} />
+                  </td>
+                </tr>
+              );
+            });
+          });
+        }
         stepContent = (
           <div className="app-content">
             <div className="app-message">
               {`Customized for ${this.props.config.taskType} using config file ${this.props.configName}.`}
             </div>
             <div className="app-message">
-              {`Verify task parameters and click start or click on edit config to modify parameters.`}
+              {`Verify optional parameters and click start`}
             </div>
             <table className="mx-auto">
+              {paramRows}
               <tr>
-                <td>
-                  <div className="params-text">
-                    {paramsText} 
-                  </div>
-                </td>
-              </tr>
-              <tr>
-                <td>
+                <td colSpan={3}>
                   <div className="w-100 my-4 text-center">
-                    <button className="btn btn-primary btn-lg" style={{width: 200}} onClick={this.executeJob}>
-                      Start
+                    <button className="btn btn-primary btn-lg mx-3" style={{width: 200}} onClick={this.executeJob}>
+                      {"Start"}
+                    </button>
+                    <button className="btn btn-secondary btn-lg mx-3" style={{width: 200}} onClick={() => this.setState({step: 1})}>
+                      {"Back"}
                     </button>
                   </div>
                 </td>

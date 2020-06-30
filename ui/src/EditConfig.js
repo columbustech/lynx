@@ -29,7 +29,6 @@ class EditConfig extends React.Component {
       batchSize: "",
       nEstimators: "",
       minTestSize: "",
-      parameters: [],
       driveObjects: [],
       statusKey: ""
     };
@@ -37,9 +36,6 @@ class EditConfig extends React.Component {
     this.saveConfig = this.saveConfig.bind(this);
     this.acceptConfig = this.acceptConfig.bind(this);
     this.importConfig = this.importConfig.bind(this);
-    this.addParameter = this.addParameter.bind(this);
-    this.updateParameter = this.updateParameter.bind(this);
-    this.removeParameter = this.removeParameter.bind(this);
   }
   componentDidMount() {
     var statusKey = "present";
@@ -92,7 +88,6 @@ class EditConfig extends React.Component {
       batchSize: this.state.batchSize,
       nEstimators: this.state.nEstimators,
       minTestSize: this.state.minTestSize,
-      parameters: this.state.parameters
     };
     const cookies = new Cookies();
     var auth_header = 'Bearer ' + cookies.get('lynx_token');
@@ -124,7 +119,6 @@ class EditConfig extends React.Component {
       batchSize: this.state.batchSize,
       nEstimators: this.state.nEstimators,
       minTestSize: this.state.minTestSize,
-      parameters: this.state.parameters
     };
     this.props.updateConfig(config, this.state.configName);
   }
@@ -153,25 +147,6 @@ class EditConfig extends React.Component {
         );
       },
     );
-  }
-  addParameter() {
-    var parameter = {
-      "name": "",
-      "value": ""
-    }
-    var parameters = this.state.parameters;
-    parameters.push(parameter);
-    this.setState({parameters: parameters});
-  }
-  updateParameter(index, field, value) {
-    var parameters = this.state.parameters;
-    parameters[index][field] = value;
-    this.setState({parameters: parameters});
-  }
-  removeParameter(index) {
-    var parameters = this.state.parameters;
-    parameters.splice(index, 1);
-    this.setState({parameters: parameters});
   }
   render() {
     let actionButtons = [];
@@ -204,25 +179,7 @@ class EditConfig extends React.Component {
         Quit
       </a>
     );
-    let parameters;
-    parameters = this.state.parameters.map((param, i) => {
-      return (
-        <tr key={i}>
-          <td />
-          <td>
-            <input type="text" placeholder="Name" value={this.state.parameters[i].name} className="p-2 mx-3 my-2"
-              onChange={e => this.updateParameter(i, "name", e.target.value)} />
-          </td>
-          <td colSpan={2}>
-            <input type="text" placeholder="Value" value={this.state.parameters[i].value} className="p-2 mx-3 my-2"
-              onChange={e => this.updateParameter(i, "value", e.target.value)} />
-            <button className="btn btn-secondary mx-3 my-2" onClick={() => this.removeParameter(i)}>
-              Remove
-            </button>
-          </td>
-        </tr>
-      );
-    });
+
     return(
       <div className="app-page">
         <div className="app-header">
@@ -345,17 +302,6 @@ class EditConfig extends React.Component {
                     onChange={e => this.setState({featurizerReplicas: e.target.value})} />
                 </td>
               </tr>
-              <tr>
-                <td>
-                  <span className="mx-3">Parameters:</span>
-                </td>
-                <td>
-                  <button className="btn btn-secondary mx-3 my-2" onClick={this.addParameter}>
-                    Add
-                  </button>
-                </td>
-              </tr>
-              {parameters}
               <tr>
                 <td colSpan={9}>
                   <div className="w-100 my-4 text-center">
