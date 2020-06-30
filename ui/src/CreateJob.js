@@ -9,6 +9,7 @@ class CreateJob extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
+      step: 1,
       driveObjects: [],
       inputPath: "",
       outputPath: "",
@@ -88,6 +89,85 @@ class CreateJob extends React.Component {
           Quit
         </a>
       );
+      let stepContent;
+      if (this.state.step === 1) {
+        stepContent = (
+          <div className="app-content">
+            <div className="app-message">
+              {`Customized for ${this.props.config.taskType} using config file ${this.props.configName}.`}
+            </div>
+            <div className="app-message">
+              {`Enter CDrive path to input and output folders and click next.`}
+            </div>
+            <table className="mx-auto">
+              <tr>
+                <td>
+                  <input type="text" className="cdrive-path-input my-3 px-3" placeholder="Input folder for profiler" value={this.state.inputPath} onChange={e => this.setState({inputPath: e.target.value})} />
+                  <button className="browse-button my-3" onClick={() => this.setState({inputPathSelector: true})}>
+                    {"Browse"}
+                  </button>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <input type="text" className="cdrive-path-input my-3 px-3" placeholder="Output folder for predicted matches" value={this.state.outputPath} onChange={e => this.setState({outputPath: e.target.value})} />
+                  <button className="browse-button my-3" onClick={() => this.setState({outputPathSelector: true})}>
+                    {"Browse"}
+                  </button>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div className="w-100 my-4 text-center">
+                    <button className="btn btn-primary btn-lg" style={{width: 200}} onClick={() => this.setState({step: 2})}>
+                      {"Next"}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </table>
+            <CDrivePathSelector show={this.state.inputPathSelector} toggle={() => this.setState({inputPathSelector : false})}
+              action={path => this.setState({inputPath: path})} title="Select Input Folder"  actionName="Select this folder"
+              driveObjects={this.state.driveObjects} type="folder" />
+            <CDrivePathSelector show={this.state.outputPathSelector} toggle={() => this.setState({outputPathSelector : false})}
+              action={path => this.setState({outputPath: path})} title="Select Input Folder"  actionName="Select this folder"
+              driveObjects={this.state.driveObjects} type="folder" />
+          </div>
+        );
+      } else {
+        let paramsText;
+        paramsText = this.props.config.parameters.map((parameter, key) =>
+          <span key={"var" + key.toString()}> {parameter.name}{"="}{parameter.value}<br /></span>
+        );
+        stepContent = (
+          <div className="app-content">
+            <div className="app-message">
+              {`Customized for ${this.props.config.taskType} using config file ${this.props.configName}.`}
+            </div>
+            <div className="app-message">
+              {`Verify task parameters and click start or click on edit config to modify parameters.`}
+            </div>
+            <table className="mx-auto">
+              <tr>
+                <td>
+                  <div className="params-text">
+                    {paramsText} 
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div className="w-100 my-4 text-center">
+                    <button className="btn btn-primary btn-lg" style={{width: 200}} onClick={this.executeJob}>
+                      Start
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </table>
+          </div>
+        );
+      }
       return(
         <div className="app-page">
           <div className="app-header">
@@ -99,47 +179,7 @@ class CreateJob extends React.Component {
             </div>
           </div>
           <div className="app-body">
-            <div className="app-content">
-              <div className="app-message">
-                {`Customized for ${this.props.config.taskType} using config file ${this.props.configName}.`}
-              </div>
-              <div className="app-message">
-                {`Enter CDrive path to input and output folders and click start.`}
-              </div>
-              <table className="mx-auto">
-                <tr>
-                  <td>
-                    <input type="text" className="cdrive-path-input my-3 px-3" placeholder="Input folder for profiler" value={this.state.inputPath} onChange={e => this.setState({inputPath: e.target.value})} />
-                    <button className="browse-button my-3" onClick={() => this.setState({inputPathSelector: true})}>
-                      {"Browse"}
-                    </button>
-                  </td>
-                </tr>
-                <tr>
-                  <td>
-                    <input type="text" className="cdrive-path-input my-3 px-3" placeholder="Output folder for predicted matches" value={this.state.outputPath} onChange={e => this.setState({outputPath: e.target.value})} />
-                    <button className="browse-button my-3" onClick={() => this.setState({outputPathSelector: true})}>
-                      {"Browse"}
-                    </button>
-                  </td>
-                </tr>
-                <tr>
-                  <td>
-                    <div className="w-100 my-4 text-center">
-                      <button className="btn btn-primary btn-lg" style={{width: 200}} onClick={this.executeJob}>
-                        Start
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              </table>
-              <CDrivePathSelector show={this.state.inputPathSelector} toggle={() => this.setState({inputPathSelector : false})}
-                action={path => this.setState({inputPath: path})} title="Select Input Folder"  actionName="Select this folder"
-                driveObjects={this.state.driveObjects} type="folder" />
-              <CDrivePathSelector show={this.state.outputPathSelector} toggle={() => this.setState({outputPathSelector : false})}
-                action={path => this.setState({outputPath: path})} title="Select Input Folder"  actionName="Select this folder"
-                driveObjects={this.state.driveObjects} type="folder" />
-            </div>
+            {stepContent}
           </div>
         </div>
       );

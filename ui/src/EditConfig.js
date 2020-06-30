@@ -23,14 +23,13 @@ class EditConfig extends React.Component {
       profilerReplicas: "",
       blockerUrl: "",
       blockerReplicas: "",
-      blockerChunks: "",
       featurizerUrl: "",
       featurizerReplicas: "",
-      featurizerChunks: "",
       iterations: "",
       batchSize: "",
       nEstimators: "",
       minTestSize: "",
+      parameters: [],
       driveObjects: [],
       statusKey: ""
     };
@@ -38,6 +37,9 @@ class EditConfig extends React.Component {
     this.saveConfig = this.saveConfig.bind(this);
     this.acceptConfig = this.acceptConfig.bind(this);
     this.importConfig = this.importConfig.bind(this);
+    this.addParameter = this.addParameter.bind(this);
+    this.updateParameter = this.updateParameter.bind(this);
+    this.removeParameter = this.removeParameter.bind(this);
   }
   componentDidMount() {
     var statusKey = "present";
@@ -84,14 +86,13 @@ class EditConfig extends React.Component {
       profilerReplicas: this.state.profilerReplicas,
       blockerUrl: this.state.blockerUrl,
       blockerReplicas: this.state.blockerReplicas,
-      blockerChunks: this.state.blockerChunks,
       featurizerUrl: this.state.featurizerUrl,
       featurizerReplicas: this.state.featurizerReplicas,
-      featurizerChunks: this.state.featurizerChunks,
       iterations: this.state.iterations,
       batchSize: this.state.batchSize,
       nEstimators: this.state.nEstimators,
       minTestSize: this.state.minTestSize,
+      parameters: this.state.parameters
     };
     const cookies = new Cookies();
     var auth_header = 'Bearer ' + cookies.get('lynx_token');
@@ -117,14 +118,13 @@ class EditConfig extends React.Component {
       profilerReplicas: this.state.profilerReplicas,
       blockerUrl: this.state.blockerUrl,
       blockerReplicas: this.state.blockerReplicas,
-      blockerChunks: this.state.blockerChunks,
       featurizerUrl: this.state.featurizerUrl,
       featurizerReplicas: this.state.featurizerReplicas,
-      featurizerChunks: this.state.featurizerChunks,
       iterations: this.state.iterations,
       batchSize: this.state.batchSize,
       nEstimators: this.state.nEstimators,
       minTestSize: this.state.minTestSize,
+      parameters: this.state.parameters
     };
     this.props.updateConfig(config, this.state.configName);
   }
@@ -153,6 +153,25 @@ class EditConfig extends React.Component {
         );
       },
     );
+  }
+  addParameter() {
+    var parameter = {
+      "name": "",
+      "value": ""
+    }
+    var parameters = this.state.parameters;
+    parameters.push(parameter);
+    this.setState({parameters: parameters});
+  }
+  updateParameter(index, field, value) {
+    var parameters = this.state.parameters;
+    parameters[index][field] = value;
+    this.setState({parameters: parameters});
+  }
+  removeParameter(index) {
+    var parameters = this.state.parameters;
+    parameters.splice(index, 1);
+    this.setState({parameters: parameters});
   }
   render() {
     let actionButtons = [];
@@ -185,7 +204,25 @@ class EditConfig extends React.Component {
         Quit
       </a>
     );
-
+    let parameters;
+    parameters = this.state.parameters.map((param, i) => {
+      return (
+        <tr key={i}>
+          <td />
+          <td>
+            <input type="text" placeholder="Name" value={this.state.parameters[i].name} className="p-2 mx-3 my-2"
+              onChange={e => this.updateParameter(i, "name", e.target.value)} />
+          </td>
+          <td colSpan={2}>
+            <input type="text" placeholder="Value" value={this.state.parameters[i].value} className="p-2 mx-3 my-2"
+              onChange={e => this.updateParameter(i, "value", e.target.value)} />
+            <button className="btn btn-secondary mx-3 my-2" onClick={() => this.removeParameter(i)}>
+              Remove
+            </button>
+          </td>
+        </tr>
+      );
+    });
     return(
       <div className="app-page">
         <div className="app-header">
@@ -222,7 +259,7 @@ class EditConfig extends React.Component {
                 <td>
                   <span className="mx-3">Task Type:</span>
                 </td>
-                <td colSpan={3}>
+                <td>
                   <input type="text" placeholder="Task Type" value={this.state.taskType} className="p-2 mx-3 my-2"
                     onChange={e => this.setState({taskType: e.target.value})} />
                 </td>
@@ -245,8 +282,6 @@ class EditConfig extends React.Component {
                   <input type="text" value={this.state.profilerReplicas} className="p-1 mx-3 my-2 number-input"
                     onChange={e => this.setState({profilerReplicas: e.target.value})} />
                 </td>
-                <td />
-                <td />
                 <td />
                 <td>
                   <span className="m-3">No. of Trees:</span>
@@ -277,12 +312,6 @@ class EditConfig extends React.Component {
                 <td>
                   <input type="text" value={this.state.blockerReplicas} className="p-1 mx-3 my-2 number-input"
                     onChange={e => this.setState({blockerReplicas: e.target.value})} />
-                </td>
-                <td>
-                  <span className="mx-3">Input Chunks:</span>
-                </td>
-                <td>
-                  <input type="text" value={this.state.blockerChunks} className="p-1 mx-3 my-2 number-input" onChange={e => this.setState({blockerChunks: e.target.value})} />
                 </td>
                 <td />
                 <td>
@@ -315,15 +344,20 @@ class EditConfig extends React.Component {
                   <input type="text" value={this.state.featurizerReplicas} className="p-1 mx-3 my-2 number-input"
                     onChange={e => this.setState({featurizerReplicas: e.target.value})} />
                 </td>
-                <td>
-                  <span className="mx-3">Input Chunks:</span>
-                </td>
-                <td>
-                  <input type="text" value={this.state.featurizerChunks} className="p-1 mx-3 my-2 number-input" onChange={e => this.setState({featurizerChunks: e.target.value})} />
-                </td>
               </tr>
               <tr>
-                <td colSpan={10}>
+                <td>
+                  <span className="mx-3">Parameters:</span>
+                </td>
+                <td>
+                  <button className="btn btn-secondary mx-3 my-2" onClick={this.addParameter}>
+                    Add
+                  </button>
+                </td>
+              </tr>
+              {parameters}
+              <tr>
+                <td colSpan={9}>
                   <div className="w-100 my-4 text-center">
                     {actionButtons}
                   </div>

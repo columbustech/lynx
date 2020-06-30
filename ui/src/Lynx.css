@@ -81,3 +81,12 @@
   border: 2px solid #5A6268;
   background-color: #5A6268;
 }
+.params-text {
+  overflow: auto;
+  padding: 15px;
+  width: 700px;
+  background-color: #f5f5f5;
+  border-style: solid;
+  border-color: #858585;
+  border-width: thin;
+}
