@@ -8,6 +8,10 @@ def execute_workflow(uid, token, data):
     gold_path = None
     if 'goldPath' in data:
         gold_path = data['goldPath']
+    #blocker_fields = next(filter(lambda x: x['stage'] == 'blocking', data['parameters']))
+    #blocker_chunks = next(filter(lambda x: x['name'] == 'chunks', blocker_fields['parameters']))['value']
+    #featurizer_fields = next(filter(lambda x: x['stage'] == 'featurizing', data['parameters']))
+    #featurizer_chunks = next(filter(lambda x: x['name'] == 'chunks', blocker_fields['parameters']))['value']
     jm = SMJobManager(
         uid=uid,
         auth_header = 'Bearer ' + token,
@@ -17,10 +21,10 @@ def execute_workflow(uid, token, data):
         profiler_replicas = data['profilerReplicas'],
         blocker_url = data['blockerUrl'],
         blocker_replicas = data['blockerReplicas'],
-        blocker_chunks = data['blockerChunks'],
+        #blocker_chunks = blocker_chunks,
         featurizer_url = data['featurizerUrl'],
         featurizer_replicas = data['featurizerReplicas'],
-        featurizer_chunks = data['featurizerChunks'],
+        #featurizer_chunks = featurizer_chunks,
         iterations = int(data['iterations']),
         current_iteration = 0,
         n_estimators = int(data['nEstimators']),
